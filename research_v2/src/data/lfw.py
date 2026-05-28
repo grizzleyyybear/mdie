@@ -16,15 +16,33 @@ from PIL import Image
 
 def prepare_lfw(cache_dir: Path, min_faces_per_person: int = 5) -> Path:
     """
-    Download LFW (deepfunneled, 250x250 aligned) via scikit-learn and write it
-    out as ``<cache_dir>/lfw/<identity>/<image>.jpg``.
+    Make LFW available at ``<cache_dir>/lfw/<identity>/<image>.jpg`` and return
+    that directory.
 
-    Returns the directory containing per-identity subfolders.
+    Strategy (in order):
+      1. If ``<cache_dir>/lfw/`` already has per-identity subdirs, use it.
+      2. If ``hpc/stage_datasets.sh`` has placed the canonical UMass tarball
+         layout at ``<cache_dir>/lfw/lfw/<identity>/<image>.jpg`` (the tar
+         creates a nested ``lfw`` dir), reuse it without re-downloading.
+      3. Fall back to sklearn's ``fetch_lfw_people`` (only path that needs
+         outbound HTTP; flaky on CDAC because figshare blocks the proxy).
     """
     out_dir = cache_dir / "lfw"
-    if out_dir.exists() and any(out_dir.iterdir()):
-        return out_dir
 
+    # Case 1: already in the right layout (one or more per-identity subdirs
+    # that are NOT the nested 'lfw/lfw' from the tarball).
+    if out_dir.exists():
+        subs = [p for p in out_dir.iterdir() if p.is_dir() and p.name != "lfw"]
+        if subs:
+            return out_dir
+
+    # Case 2: re-use the UMass tarball already extracted by stage_datasets.sh.
+    tar_root = out_dir / "lfw"  # tarball expands to lfw/<identity>/...
+    if tar_root.exists() and any(tar_root.iterdir()):
+        print(f"  [lfw] using staged UMass tarball at {tar_root}")
+        return tar_root
+
+    # Case 3: sklearn download (only if neither of the above worked).
     from sklearn.datasets import fetch_lfw_people
 
     print(f"  [lfw] downloading via sklearn (min_faces_per_person={min_faces_per_person}) ...")

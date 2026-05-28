@@ -45,15 +45,54 @@ df -h "$CACHE_ROOT" | tail -1 || true
 
 # ---- 1. LFW ---------------------------------------------------------------
 LFW_DIR="$CACHE_ROOT/lfw/lfw"
-if [[ ! -d "$LFW_DIR" ]]; then
-    echo "[lfw] downloading..."
+LFW_URLS=(
+    "https://vis-www.cs.umass.edu/lfw/lfw.tgz"
+    "http://vis-www.cs.umass.edu/lfw/lfw.tgz"
+)
+
+_lfw_ok() {
+    # Tarball expanded? Need both the dir and at least one jpg inside.
+    [[ -d "$LFW_DIR" ]] && [[ -n "$(find "$LFW_DIR" -name '*.jpg' -print -quit 2>/dev/null)" ]]
+}
+
+if ! _lfw_ok; then
     LFW_TGZ="$CACHE_ROOT/lfw/lfw.tgz"
-    wget -q -O "$LFW_TGZ" \
-        https://vis-www.cs.umass.edu/lfw/lfw.tgz
+    mkdir -p "$CACHE_ROOT/lfw"
+    rm -f "$LFW_TGZ"
+
+    fetched=0
+    for url in "${LFW_URLS[@]}"; do
+        for attempt in 1 2; do
+            echo "[lfw] try $attempt: wget $url"
+            # --show-progress so we *see* what's happening; --tries handles flaky links;
+            # `|| true` so set -e doesn't kill us — we evaluate exit status manually.
+            if wget --tries=3 --timeout=60 --show-progress -O "$LFW_TGZ" "$url"; then
+                if [[ -s "$LFW_TGZ" ]]; then fetched=1; break; fi
+            fi
+            echo "[lfw] download failed; will retry"
+            sleep 3
+        done
+        [[ "$fetched" == "1" ]] && break
+    done
+
+    if [[ "$fetched" != "1" ]]; then
+        echo "[lfw] ERROR: couldn't fetch lfw.tgz from any mirror."
+        echo "       Options:"
+        echo "         1. Re-run with proxy forced on:"
+        echo "              PARAM_USE_PROXY=1 bash hpc/stage_datasets.sh"
+        echo "         2. Download lfw.tgz on your laptop and scp it to:"
+        echo "              $LFW_TGZ"
+        echo "            then re-run this script."
+        exit 1
+    fi
+
+    echo "[lfw] extracting..."
     tar -xzf "$LFW_TGZ" -C "$CACHE_ROOT/lfw"
     rm -f "$LFW_TGZ"
 fi
-echo "[lfw] OK ($(find "$LFW_DIR" -name '*.jpg' | wc -l) images)"
+
+n_imgs=$(find "$LFW_DIR" -name '*.jpg' 2>/dev/null | wc -l)
+echo "[lfw] OK ($n_imgs images at $LFW_DIR)"
 
 # ---- 2. MFR2 / CALFW / AgeDB-30 via the project loaders -------------------
 echo "[bench] triggering loader auto-download..."
