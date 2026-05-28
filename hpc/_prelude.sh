@@ -50,6 +50,22 @@ export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-${SLURM_NTASKS_PER_NODE:-16}}"
 export MKL_NUM_THREADS="$OMP_NUM_THREADS"
 
+# CDAC proxy for outbound HTTP from compute nodes. Enabled by default unless
+# explicitly disabled with PARAM_USE_PROXY=0.
+PARAM_PROXY="${PARAM_PROXY:-http://proxy-10g.10g.siddhi.param:9090}"
+_use_proxy="${PARAM_USE_PROXY:-auto}"
+if [[ "$_use_proxy" == "0" ]]; then
+    echo "[prelude] proxy disabled (PARAM_USE_PROXY=0)"
+elif [[ "$_use_proxy" == "1" ]] || \
+     curl -fsS --max-time 5 --proxy "$PARAM_PROXY" -o /dev/null https://pypi.org/simple/ 2>/dev/null; then
+    echo "[prelude] enabling CDAC proxy: $PARAM_PROXY"
+    export http_proxy="$PARAM_PROXY"
+    export https_proxy="$PARAM_PROXY"
+    export ftp_proxy="$PARAM_PROXY"
+    export HTTP_PROXY="$PARAM_PROXY"
+    export HTTPS_PROXY="$PARAM_PROXY"
+fi
+
 mkdir -p research_v2/logs
 
 nvidia-smi || true

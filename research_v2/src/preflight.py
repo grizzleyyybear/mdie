@@ -76,7 +76,23 @@ def _check_disk() -> bool:
 
 
 def _check_dataset() -> bool:
+    import os
     from .data import build_face_dataset, prepare_lfw
+
+    # If MDIE_SKIP_DATASET_PREFLIGHT == "auto", skip when LFW dir is empty —
+    # this prevents env_setup.sh from triggering the flaky figshare download.
+    skip_mode = os.environ.get("MDIE_SKIP_DATASET_PREFLIGHT", "0")
+    lfw_root = DATA_DIR / "lfw"
+    has_local_lfw = (
+        lfw_root.exists()
+        and any(
+            p.is_dir() and any(p.glob("*.jpg")) for p in lfw_root.rglob("*")
+        )
+    )
+    if skip_mode == "1" or (skip_mode == "auto" and not has_local_lfw):
+        print(f"  {WARN} LFW not staged yet at {lfw_root} — skipping")
+        print(f"         run:  bash hpc/stage_datasets.sh   (and re-run preflight)")
+        return True
     try:
         lfw_dir = prepare_lfw(DATA_DIR, min_faces_per_person=8)
     except Exception as e:  # noqa: BLE001
@@ -95,10 +111,22 @@ def _check_dataset() -> bool:
 
 
 def _check_paired_dataset() -> bool:
+    import os
     from .data import (
         MODIFICATION_TYPES, PairedModificationDataset, build_face_dataset,
         prepare_lfw,
     )
+    lfw_root = DATA_DIR / "lfw"
+    has_local_lfw = (
+        lfw_root.exists()
+        and any(
+            p.is_dir() and any(p.glob("*.jpg")) for p in lfw_root.rglob("*")
+        )
+    )
+    skip_mode = os.environ.get("MDIE_SKIP_DATASET_PREFLIGHT", "0")
+    if skip_mode == "1" or (skip_mode == "auto" and not has_local_lfw):
+        print(f"  {WARN} skipping paired-dataset check (LFW not staged)")
+        return True
     lfw_dir = prepare_lfw(DATA_DIR, min_faces_per_person=8)
     paths, labels, _ = build_face_dataset(lfw_dir, min_imgs=4)
     ds = PairedModificationDataset(paths[:8], labels[:8],

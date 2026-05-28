@@ -34,14 +34,19 @@ TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu121}"
 #     also need this for pip/wget — set it whenever PARAM_USE_PROXY=1, or
 #     auto-detect when wget can't reach pypi). ----------------------------
 PARAM_PROXY="${PARAM_PROXY:-http://proxy-10g.10g.siddhi.param:9090}"
-if [[ "${PARAM_USE_PROXY:-auto}" == "1" ]] || \
-   ! curl -fsS --max-time 5 -o /dev/null https://pypi.org/simple/ 2>/dev/null; then
+_use_proxy="${PARAM_USE_PROXY:-auto}"
+if [[ "$_use_proxy" == "0" ]]; then
+    echo "[proxy] disabled (PARAM_USE_PROXY=0)"
+elif [[ "$_use_proxy" == "1" ]] || \
+     curl -fsS --max-time 5 --proxy "$PARAM_PROXY" -o /dev/null https://pypi.org/simple/ 2>/dev/null; then
     echo "[proxy] enabling CDAC proxy: $PARAM_PROXY"
     export http_proxy="$PARAM_PROXY"
     export https_proxy="$PARAM_PROXY"
     export ftp_proxy="$PARAM_PROXY"
     export HTTP_PROXY="$PARAM_PROXY"
     export HTTPS_PROXY="$PARAM_PROXY"
+else
+    echo "[proxy] PARAM_PROXY unreachable; using direct connections"
 fi
 
 echo "============================================================"
@@ -109,7 +114,10 @@ if torch.cuda.is_available():
 PY
 
 # ---- 6. Project preflight (CPU side only) ---------------------------------
+#  Skip the LFW-touching part if data isn't staged yet — otherwise sklearn
+#  would try to download LFW from figshare (often blocked from PARAM) and hang.
 cd "$REPO_ROOT"
+export MDIE_SKIP_DATASET_PREFLIGHT="${MDIE_SKIP_DATASET_PREFLIGHT:-auto}"
 PYTHONPATH="$REPO_ROOT" python -m research_v2.src.preflight || true
 
 cat <<EOF

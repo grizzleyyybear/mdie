@@ -25,16 +25,26 @@ fi
 CONDA_PREFIX_DIR="${CONDA_PREFIX_DIR:-$_PREFIX_DEFAULT/Conda}"
 ENV_NAME="${ENV_NAME:-mdie}"
 
-# CDAC proxy: login node may need it for upstream downloads.
+# CDAC proxy: PARAM Siddhi-AI requires the proxy for arbitrary external
+# downloads (pypi is whitelisted, vis-www.cs.umass.edu / figshare are not).
+# Default behaviour: enable the proxy if PARAM_PROXY is reachable.
+# Disable with: PARAM_USE_PROXY=0 bash hpc/stage_datasets.sh
 PARAM_PROXY="${PARAM_PROXY:-http://proxy-10g.10g.siddhi.param:9090}"
-if [[ "${PARAM_USE_PROXY:-auto}" == "1" ]] || \
-   ! curl -fsS --max-time 5 -o /dev/null https://huggingface.co 2>/dev/null; then
+_use_proxy="${PARAM_USE_PROXY:-auto}"
+if [[ "$_use_proxy" == "0" ]]; then
+    echo "[proxy] disabled (PARAM_USE_PROXY=0)"
+elif [[ "$_use_proxy" == "1" ]] || \
+     curl -fsS --max-time 5 --proxy "$PARAM_PROXY" -o /dev/null https://pypi.org/simple/ 2>/dev/null; then
     echo "[proxy] enabling CDAC proxy: $PARAM_PROXY"
     export http_proxy="$PARAM_PROXY"
     export https_proxy="$PARAM_PROXY"
     export ftp_proxy="$PARAM_PROXY"
     export HTTP_PROXY="$PARAM_PROXY"
     export HTTPS_PROXY="$PARAM_PROXY"
+    # also forward to python/requests via env
+    export REQUESTS_CA_BUNDLE="${REQUESTS_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}"
+else
+    echo "[proxy] PARAM_PROXY unreachable; trying direct connections"
 fi
 
 # shellcheck disable=SC1091
@@ -55,35 +65,41 @@ _lfw_ok() {
     [[ -d "$LFW_DIR" ]] && [[ -n "$(find "$LFW_DIR" -name '*.jpg' -print -quit 2>/dev/null)" ]]
 }
 
-if ! _lfw_ok; then
+if _lfw_ok; then
+    echo "[lfw] already staged at $LFW_DIR"
+else
     LFW_TGZ="$CACHE_ROOT/lfw/lfw.tgz"
     mkdir -p "$CACHE_ROOT/lfw"
-    rm -f "$LFW_TGZ"
 
-    fetched=0
-    for url in "${LFW_URLS[@]}"; do
-        for attempt in 1 2; do
-            echo "[lfw] try $attempt: wget $url"
-            # --show-progress so we *see* what's happening; --tries handles flaky links;
-            # `|| true` so set -e doesn't kill us — we evaluate exit status manually.
-            if wget --tries=3 --timeout=60 --show-progress -O "$LFW_TGZ" "$url"; then
-                if [[ -s "$LFW_TGZ" ]]; then fetched=1; break; fi
-            fi
-            echo "[lfw] download failed; will retry"
-            sleep 3
+    # If user pre-uploaded the tarball, use it directly.
+    if [[ ! -s "$LFW_TGZ" ]]; then
+        fetched_url=""
+        for url in "${LFW_URLS[@]}"; do
+            for attempt in 1 2; do
+                echo "[lfw] try $attempt: $url"
+                if wget --tries=3 --timeout=120 --show-progress -O "$LFW_TGZ" "$url"; then
+                    if [[ -s "$LFW_TGZ" ]]; then fetched_url="$url"; break; fi
+                fi
+                echo "[lfw] failed; retrying..."
+                sleep 3
+            done
+            [[ -n "$fetched_url" ]] && break
         done
-        [[ "$fetched" == "1" ]] && break
-    done
 
-    if [[ "$fetched" != "1" ]]; then
-        echo "[lfw] ERROR: couldn't fetch lfw.tgz from any mirror."
-        echo "       Options:"
-        echo "         1. Re-run with proxy forced on:"
-        echo "              PARAM_USE_PROXY=1 bash hpc/stage_datasets.sh"
-        echo "         2. Download lfw.tgz on your laptop and scp it to:"
-        echo "              $LFW_TGZ"
-        echo "            then re-run this script."
-        exit 1
+        if [[ -z "$fetched_url" ]]; then
+            rm -f "$LFW_TGZ"
+            echo ""
+            echo "[lfw] ERROR: could not fetch LFW from any mirror."
+            echo "       Force the CDAC proxy and retry:"
+            echo "           PARAM_USE_PROXY=1 bash hpc/stage_datasets.sh"
+            echo "       Or download lfw.tgz on a machine with internet and scp it to:"
+            echo "           $LFW_TGZ"
+            echo "       Then re-run:  bash hpc/stage_datasets.sh"
+            exit 1
+        fi
+        echo "[lfw] downloaded from $fetched_url"
+    else
+        echo "[lfw] using pre-uploaded tarball at $LFW_TGZ"
     fi
 
     echo "[lfw] extracting..."
@@ -92,6 +108,10 @@ if ! _lfw_ok; then
 fi
 
 n_imgs=$(find "$LFW_DIR" -name '*.jpg' 2>/dev/null | wc -l)
+if [[ "$n_imgs" -lt 100 ]]; then
+    echo "[lfw] ERROR: only $n_imgs jpgs found under $LFW_DIR (expected >13000)."
+    exit 1
+fi
 echo "[lfw] OK ($n_imgs images at $LFW_DIR)"
 
 # ---- 2. MFR2 / CALFW / AgeDB-30 via the project loaders -------------------
