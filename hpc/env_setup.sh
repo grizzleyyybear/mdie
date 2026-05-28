@@ -65,12 +65,25 @@ fi
 
 # shellcheck disable=SC1091
 source "$CONDA_PREFIX_DIR/bin/activate"
-conda config --set always_yes true --set channel_priority strict >/dev/null
+
+# Use conda-forge only — Anaconda's defaults channel now requires an
+# interactive ToS click which breaks unattended HPC installs.
+conda config --remove-key channels 2>/dev/null || true
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+conda config --set always_yes true >/dev/null
+
+# Best-effort: accept defaults ToS so existing installs that already added
+# the 'main'/'r' channels keep working. Ignored silently if conda-tos
+# isn't supported on this conda version.
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r    2>/dev/null || true
 
 # ---- 2. Create / reuse the mdie env ---------------------------------------
 if ! conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
-    echo "[conda] creating env '$ENV_NAME' (python=$PY_VER) ..."
-    conda create -n "$ENV_NAME" "python=$PY_VER" pip
+    echo "[conda] creating env '$ENV_NAME' (python=$PY_VER) from conda-forge ..."
+    conda create -n "$ENV_NAME" -c conda-forge --override-channels \
+        "python=$PY_VER" pip
 fi
 # shellcheck disable=SC1091
 source "$CONDA_PREFIX_DIR/bin/activate" "$ENV_NAME"
