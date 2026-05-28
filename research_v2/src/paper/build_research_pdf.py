@@ -434,7 +434,7 @@ def page_composite(pdf):
         "Image preprocessing: MTCNN 5-pt alignment → 112x112 crop\n"
         "Sampler            : identity-balanced  (32 classes × 8 samples / batch)\n"
         "RTX 3050 4GB run   : batch 24, ~120 img/s, 4-epoch smoke ~6 min\n"
-        "A100 80GB run      : batch 256, ~3,200 img/s, 50-epoch full ~9 hours\n"
+        "A100-SXM4 40GB run : batch 256, ~3,200 img/s, 50-epoch full ~9 hours\n"
     )
     ax.text(0.0, y, hyp, transform=ax.transAxes, fontsize=9,
             family="monospace", va="top")

@@ -42,14 +42,16 @@ quota_check                        # check storage quota
 
 | Item | Value |
 |---|---|
-| Login host | `login-siddhi.pune.cdac.in` |
-| Architecture | 42 × NVIDIA DGX-A100 nodes, 8 × A100-SXM4 per node |
-| Scheduler | SLURM |
-| GRES name | `gpu:A100-SXM4:N` (NOT `gpu:A100`) |
-| Storage | 10.5 PiB lustre PFS, mounted at `/home/<user>` |
+| Login host | `login-siddhi.pune.cdac.in` (or just `login` from inside the cluster) |
+| Architecture | DGX-A100 nodes (31 in `dgxnp`), 8 × **A100-SXM4-40GB** per node |
+| Scheduler | SLURM — partition `dgxnp` is default for GPU, `cpup` for CPU-only |
+| GRES name | `gpu:A100-SXM4:N` (NOT `gpu:A100`). Generic `gpu:N` also works. |
+| Storage | Lustre PFS at `$HOME`, e.g. `/nlsasfs/home/<group>/<user>` |
 | Quota check | `quota_check` (run on login node) |
 | Frameworks | Miniconda in `$HOME/Conda` (no module subsystem for ML) |
-| Driver / CUDA | NVIDIA driver 450+, CUDA runtime 11.x on nodes |
+| Driver / CUDA | NVIDIA driver **550.90**, CUDA **12.4** runtime (PyTorch cu121 wheels work) |
+| Partition QoS | `nodeallocgpu` (auto-applied to dgxnp) |
+| Default CPU/GPU | `DefCpuPerGPU=16` (matches advisory 6) |
 | Internet on compute nodes | **NOT available** — pre-stage data from login node |
 
 ## 2 · Hard rules from the advisories (must follow)
@@ -136,8 +138,12 @@ activates the `mdie` conda env, sets `PYTHONPATH`, and runs
 ### Tuneable env vars (override on the sbatch command line)
 
 ```bash
-EPOCHS_S1=80 BATCH=384 sbatch hpc/slurm_stage1.sh
+EPOCHS_S1=80 BATCH=192 sbatch hpc/slurm_stage1.sh
 ```
+
+> **Memory note**: This cluster has **A100-SXM4 40 GB** GPUs (not 80 GB).
+> Defaults (`BATCH=256`, IR-50 @ 112², AMP) fit in ~22 GB and are safe.
+> If you ever hit `CUDA out of memory`, drop `BATCH` to 192 or 128.
 
 | Var | Default | Used by |
 |---|---|---|
