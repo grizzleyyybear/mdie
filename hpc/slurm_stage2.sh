@@ -12,7 +12,7 @@
 #SBATCH --job-name=mdie-s2
 #SBATCH --error=job.%J.err
 #SBATCH --output=job.%J.out
-##SBATCH --partition=nltmp    # uncomment if you have a project partition (advisory 1)
+#SBATCH --partition=dgxnp
 
 # shellcheck source=./_prelude.sh
 source "$(dirname "$0")/_prelude.sh"

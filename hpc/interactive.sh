@@ -10,7 +10,8 @@
 #      cd $HOME/mdie
 #      python -m research_v2.src.preflight
 # ============================================================================
-exec srun --nodes=1 --ntasks-per-node=16 \
+exec srun --partition=dgxnp \
+          --nodes=1 --ntasks-per-node=16 \
           --gres=gpu:A100-SXM4:1 \
           --time=01:00:00 \
           --pty /bin/bash

@@ -13,9 +13,8 @@
 #SBATCH --job-name=mdie-quick
 #SBATCH --error=job.%J.err
 #SBATCH --output=job.%J.out
-# If you have been allocated a project partition (e.g. nltmp, cpup),
-# uncomment the next line and set it accordingly (advisory 1):
-##SBATCH --partition=nltmp
+# Partition: dgxnp (the A100 partition on PARAM Siddhi-AI — verified `sinfo`).
+#SBATCH --partition=dgxnp
 
 # shellcheck source=./_prelude.sh
 source "$(dirname "$0")/_prelude.sh"

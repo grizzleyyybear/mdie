@@ -56,7 +56,7 @@ quota_check                        # check storage quota
 
 | # | Rule | Where applied |
 |---|---|---|
-| **A1** | If on the NLTM project, add `--partition=nltmp`. CPU-only jobs → `--partition=cpup`. | Commented `##SBATCH --partition=...` in every `slurm_*.sh` — uncomment if assigned. |
+| **A1** | Partition: this cluster uses `dgxnp` for A100 jobs (verified via `sinfo`). CPU-only jobs go to `cpup`. | All `slurm_*.sh` set `#SBATCH --partition=dgxnp`. |
 | **A3** | Interactive job walltime is **max 4 h** (was 7 d). | `hpc/interactive.sh` uses 1 h by default. |
 | **A4** | **8 running + 8 queued** jobs per user, max 16 total submitted. | Don't bulk-submit ablations — chain via `--dependency=afterok:<jobid>`. |
 | **A5** | **Do not use `--exclusive`.** Reserve GPUs only via `--gres`. | None of our scripts pass `--exclusive`. |
@@ -121,7 +121,7 @@ Every script in `hpc/` mirrors the official user-guide §8.3.1 template:
 #SBATCH --job-name=mdie-<phase>
 #SBATCH --error=job.%J.err
 #SBATCH --output=job.%J.out
-##SBATCH --partition=nltmp          # uncomment if on a project partition
+#SBATCH --partition=dgxnp           # A100 partition on PARAM Siddhi-AI
 
 source "$(dirname "$0")/_prelude.sh" # activates Conda env, echoes SLURM vars
 
@@ -241,7 +241,7 @@ buttons), per user-guide §5.3.
 |---|---|---|
 | `sbatch: error: Batch script contains DOS line breaks` | CRLF endings | `dos2unix hpc/*.sh` (we set `.gitattributes` to LF) |
 | `Invalid generic resource (gres) specification` | Wrong GRES name | Use `gpu:A100-SXM4:N`, not `gpu:A100:N` |
-| `Invalid partition name specified` | Wrong partition | Either remove `--partition=` line or set it to a partition you have access to (`nltmp`, `cpup`, etc.) |
+| `Invalid partition name specified` | Wrong partition | Confirm with `sinfo` then set `#SBATCH --partition=<name>` (this cluster uses `dgxnp` for A100, `cpup` for CPU). |
 | Job stuck in `PD` (pending) with reason `QOSMaxJobsPerUserLimit` | Hit advisory A4 (8+8) | `scancel` queued jobs you don't need, or wait |
 | Job stuck in `PD` with reason `Resources` | Cluster busy | Just wait — Siddhi can be heavily loaded |
 | `CUDA out of memory` | batch too large | `BATCH=128 sbatch hpc/slurm_*.sh` |
@@ -265,7 +265,7 @@ buttons), per user-guide §5.3.
 
 | Advisory | Effect on scripts |
 |---|---|
-| A1 (`--partition=nltmp` / `cpup`) | Commented `##SBATCH --partition=` line in every `slurm_*.sh`. |
+| A1 (partition) | `#SBATCH --partition=dgxnp` in every `slurm_*.sh` (A100 partition, verified via `sinfo`). |
 | A2 (`cpup` for CPU-only) | If you want to rebuild PDFs without a GPU, edit `slurm_eval.sh`: remove `--gres`, drop `cpup`, drop `--gres` flag entirely; the eval code falls back to CPU. |
 | A3 (4 h interactive cap) | `hpc/interactive.sh` requests 1 h; user may raise up to 4 h. |
 | A4 (8+8 jobs per user) | Documented; chain with `--dependency=afterok:<jobid>`. |
