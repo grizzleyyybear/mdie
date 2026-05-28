@@ -12,10 +12,37 @@
 set -eo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CONDA_PREFIX_DIR="${CONDA_PREFIX_DIR:-$HOME/Conda}"
+
+# Workspace-aware Conda location (see hpc/_prelude.sh for the full explanation).
+# Repo at $HOME/<sub>/projects/mdie  -> Conda at $HOME/<sub>/Conda
+# Otherwise                          -> Conda at $HOME/Conda
+# Always overridable via:  CONDA_PREFIX_DIR=/path  bash hpc/env_setup.sh
+_grand="$(cd "$REPO_ROOT/../.." 2>/dev/null && pwd || echo "")"
+_parent="$(cd "$REPO_ROOT/.." 2>/dev/null && pwd || echo "")"
+if [[ -n "$_grand" && "$_grand" == "$HOME"/* \
+      && "$(basename "$_parent")" == "projects" ]]; then
+    _PREFIX_DEFAULT="$_grand"
+else
+    _PREFIX_DEFAULT="$HOME"
+fi
+CONDA_PREFIX_DIR="${CONDA_PREFIX_DIR:-$_PREFIX_DEFAULT/Conda}"
 ENV_NAME="${ENV_NAME:-mdie}"
 PY_VER="${PY_VER:-3.11}"
 TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu121}"
+
+# --- CDAC proxy (compute nodes have no outbound internet; login node *might*
+#     also need this for pip/wget — set it whenever PARAM_USE_PROXY=1, or
+#     auto-detect when wget can't reach pypi). ----------------------------
+PARAM_PROXY="${PARAM_PROXY:-http://proxy-10g.10g.siddhi.param:9090}"
+if [[ "${PARAM_USE_PROXY:-auto}" == "1" ]] || \
+   ! curl -fsS --max-time 5 -o /dev/null https://pypi.org/simple/ 2>/dev/null; then
+    echo "[proxy] enabling CDAC proxy: $PARAM_PROXY"
+    export http_proxy="$PARAM_PROXY"
+    export https_proxy="$PARAM_PROXY"
+    export ftp_proxy="$PARAM_PROXY"
+    export HTTP_PROXY="$PARAM_PROXY"
+    export HTTPS_PROXY="$PARAM_PROXY"
+fi
 
 echo "============================================================"
 echo "  MDIE env_setup on PARAM Siddhi-AI"

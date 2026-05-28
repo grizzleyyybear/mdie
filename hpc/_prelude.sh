@@ -21,8 +21,24 @@ REPO_ROOT="$(pwd)"
 # Conda's activate script references unset vars internally, so we
 # temporarily lift `set -u` (re-enabled afterwards is intentionally OFF —
 # keep `set -e` + pipefail; `-u` is too aggressive for HPC env scripts).
-CONDA_PREFIX_DIR="${CONDA_PREFIX_DIR:-$HOME/Conda}"
+#
+# Workspace-aware Conda location:
+#   - If repo lives at  $HOME/<sub>/projects/mdie  (e.g. ~/mrinal/projects/mdie)
+#     Conda goes to     $HOME/<sub>/Conda          (e.g. ~/mrinal/Conda)
+#     so multiple users sharing one account stay isolated.
+#   - Otherwise         $HOME/Conda                (single-user default)
+#   - Always overridable via  CONDA_PREFIX_DIR  env var.
+_mdie_grand="$(cd "$REPO_ROOT/../.." 2>/dev/null && pwd || echo "")"
+_mdie_parent="$(cd "$REPO_ROOT/.." 2>/dev/null && pwd || echo "")"
+if [[ -n "$_mdie_grand" && "$_mdie_grand" == "$HOME"/* \
+      && "$(basename "$_mdie_parent")" == "projects" ]]; then
+    _MDIE_PREFIX_DEFAULT="$_mdie_grand"
+else
+    _MDIE_PREFIX_DEFAULT="$HOME"
+fi
+CONDA_PREFIX_DIR="${CONDA_PREFIX_DIR:-$_MDIE_PREFIX_DEFAULT/Conda}"
 ENV_NAME="${ENV_NAME:-mdie}"
+echo "[prelude] CONDA_PREFIX_DIR=$CONDA_PREFIX_DIR  ENV_NAME=$ENV_NAME"
 # shellcheck disable=SC1091
 source "$CONDA_PREFIX_DIR/bin/activate" "$ENV_NAME"
 

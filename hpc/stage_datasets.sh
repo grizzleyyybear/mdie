@@ -13,8 +13,30 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CACHE_ROOT="$REPO_ROOT/research_v2/datasets_cache"
 mkdir -p "$CACHE_ROOT/benchmarks" "$CACHE_ROOT/lfw"
 
-CONDA_PREFIX_DIR="${CONDA_PREFIX_DIR:-$HOME/Conda}"
+# Workspace-aware Conda (matches hpc/_prelude.sh)
+_grand="$(cd "$REPO_ROOT/../.." 2>/dev/null && pwd || echo "")"
+_parent="$(cd "$REPO_ROOT/.." 2>/dev/null && pwd || echo "")"
+if [[ -n "$_grand" && "$_grand" == "$HOME"/* \
+      && "$(basename "$_parent")" == "projects" ]]; then
+    _PREFIX_DEFAULT="$_grand"
+else
+    _PREFIX_DEFAULT="$HOME"
+fi
+CONDA_PREFIX_DIR="${CONDA_PREFIX_DIR:-$_PREFIX_DEFAULT/Conda}"
 ENV_NAME="${ENV_NAME:-mdie}"
+
+# CDAC proxy: login node may need it for upstream downloads.
+PARAM_PROXY="${PARAM_PROXY:-http://proxy-10g.10g.siddhi.param:9090}"
+if [[ "${PARAM_USE_PROXY:-auto}" == "1" ]] || \
+   ! curl -fsS --max-time 5 -o /dev/null https://huggingface.co 2>/dev/null; then
+    echo "[proxy] enabling CDAC proxy: $PARAM_PROXY"
+    export http_proxy="$PARAM_PROXY"
+    export https_proxy="$PARAM_PROXY"
+    export ftp_proxy="$PARAM_PROXY"
+    export HTTP_PROXY="$PARAM_PROXY"
+    export HTTPS_PROXY="$PARAM_PROXY"
+fi
+
 # shellcheck disable=SC1091
 source "$CONDA_PREFIX_DIR/bin/activate" "$ENV_NAME"
 

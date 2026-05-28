@@ -158,19 +158,40 @@ EPOCHS_S1=80 BATCH=192 sbatch hpc/slurm_stage1.sh
 | `IIITD_ROOT` | unset | eval (gated dataset) |
 | `IJBC_ROOT` | unset | eval (gated dataset) |
 | `HF_ENDPOINT` | upstream | stage_datasets (use mirror if blocked) |
+| `PARAM_PROXY` | `http://proxy-10g.10g.siddhi.param:9090` | env_setup / stage / prelude (CDAC HTTP proxy) |
+| `PARAM_USE_PROXY` | `auto` | force proxy always-on with `=1`, force off with `=0` |
+| `MDIE_PREFIX` *(implicit)* | auto-detected | If repo is at `$HOME/<sub>/projects/mdie` (e.g. `~/mrinal/projects/mdie`), Conda installs to `$HOME/<sub>/Conda` (e.g. `~/mrinal/Conda`). Otherwise `$HOME/Conda`. Always overridable via explicit `CONDA_PREFIX_DIR=/path`. |
 
 ## 6 · End-to-end workflow
 
 ### 6.1 First time on the cluster
 
+**Login host:** the current login is `login.npsf.cdac.in` (older docs say
+`login-siddhi.pune.cdac.in` — your account-onboarding email is the source
+of truth).
+
 ```bash
-ssh <user>@login-siddhi.pune.cdac.in
-git clone <repo-url> $HOME/mdie
-cd $HOME/mdie
+# from your laptop, with FortiClient VPN connected to npsf-gw.cdac.in:443
+ssh <user>@login.npsf.cdac.in
+
+# pick a workspace dir; if you share the account, use a personal subdir:
+mkdir -p ~/<yourname>/projects && cd ~/<yourname>/projects
+# (single-user account? just  cd ~  works fine.)
+
+git clone https://github.com/grizzleyyybear/mdie.git
+cd mdie
+
 bash hpc/env_setup.sh           # ~5 min  (Miniconda + PyTorch wheels)
+                                # auto-uses CDAC proxy if pypi is blocked
 bash hpc/stage_datasets.sh      # ~30 min (LFW + MFR2 + CALFW + AgeDB-30)
 quota_check                     # confirm you have headroom
 ```
+
+> **Conda placement.** If you cloned into `~/mrinal/projects/mdie`,
+> Miniconda installs to `~/mrinal/Conda` (kept under your subdir,
+> not in the shared account home). If you cloned into `~/mdie`,
+> it installs to `~/Conda`. Override anytime:
+> `CONDA_PREFIX_DIR=/path/to/Conda bash hpc/env_setup.sh`
 
 ### 6.2 Sanity check (always do this on a fresh account)
 
