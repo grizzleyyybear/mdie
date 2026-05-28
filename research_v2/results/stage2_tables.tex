@@ -1,0 +1,53 @@
+% =================== Table 1: Overall verification ===================
+\begin{table}[t]
+\centering
+\caption{Overall verification performance on the LFW-modified benchmark suite. AUC: area under ROC; EER: equal error rate; TAR@FAR=$10^{-3}$: true-accept rate at false-accept rate $10^{-3}$.}
+\label{tab:overall}
+\begin{tabular}{lcccc}
+\hline
+Model & AUC $\uparrow$ & EER $\downarrow$ & TAR@$10^{-2}$ $\uparrow$ & TAR@$10^{-3}$ $\uparrow$ \\
+\hline
+facenet & 0.6325 & 0.3876 & 0.0747 & 0.0306 \\
+arcface & 0.8171 & 0.2557 & 0.2325 & 0.0653 \\
+cosface & 0.8524 & 0.2372 & 0.3742 & 0.1328 \\
+mobilefacenet & 0.8407 & 0.2414 & 0.2556 & 0.0897 \\
+MDIE-full & 0.6150 & 0.4243 & 0.0244 & 0.0061 \\
+\hline
+\end{tabular}
+\end{table}
+
+% =================== Table 2: Per-modification AUC ===================
+\begin{table*}[t]
+\centering
+\caption{Per-modification AUC. The proposed MDIE shows the smallest AUC drop across modification types.}
+\label{tab:permod}
+\begin{tabular}{lccccc}
+\hline
+Modification & facenet & arcface & cosface & mobilefacenet & MDIE-full \\
+\hline
+adversarial & 0.6793 & 0.8640 & 0.8961 & 0.8939 & 0.6191 \\
+aging & 0.6761 & 0.8469 & 0.8935 & 0.8790 & 0.6179 \\
+clean & 0.6866 & 0.8642 & 0.8995 & 0.9001 & 0.6183 \\
+disguise_glasses & 0.5189 & 0.8076 & 0.8015 & 0.7683 & 0.6083 \\
+disguise_mask & 0.5698 & 0.7296 & 0.7127 & 0.7213 & 0.6081 \\
+low_light & 0.6374 & 0.7458 & 0.8379 & 0.8329 & 0.6092 \\
+occlusion_random & 0.6690 & 0.8037 & 0.8461 & 0.7940 & 0.6172 \\
+surgery_jaw & 0.6863 & 0.8657 & 0.9021 & 0.9010 & 0.6184 \\
+surgery_nose & 0.6812 & 0.8642 & 0.8990 & 0.8998 & 0.6188 \\
+\hline
+\end{tabular}
+\end{table*}
+
+% =================== Table 3: Ablation ===================
+\begin{table}[t]
+\centering
+\caption{Ablation of MDIE components on the modified-LFW protocol.}
+\label{tab:ablation}
+\begin{tabular}{lcccc}
+\hline
+Variant & AUC $\uparrow$ & EER $\downarrow$ & TAR@$10^{-2}$ $\uparrow$ & TAR@$10^{-3}$ $\uparrow$ \\
+\hline
+MDIE-full & 0.6150 & 0.4243 & 0.0244 & 0.0061 \\
+\hline
+\end{tabular}
+\end{table}

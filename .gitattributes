@@ -1,0 +1,5 @@
+# Force LF endings on shell + SLURM scripts so they execute on Linux
+# regardless of who edits them on which OS.
+*.sh        text eol=lf
+hpc/slurm_* text eol=lf
+hpc/*.sh    text eol=lf

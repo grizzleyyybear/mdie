@@ -1,0 +1,23 @@
+# MDIE — Modification-Invariant Face Recognition
+# Minimal dependency set. Verified against the imports in research_v2/src/.
+
+# Core deep learning
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.26.0
+
+# Image I/O and processing
+opencv-python>=4.8.0
+pillow>=10.0.0
+
+# Metrics, plots, paper figures
+scikit-learn>=1.3.0
+matplotlib>=3.8.0
+
+# Document generation (methodology DOCX)
+python-docx>=1.1.0
+
+# Optional but recommended: lets the eval harness auto-download the
+# InsightFace w600k_r50 IR-50 production baseline (174 MB) from HF Hub.
+# Remove this line if you prefer to drop the .pth file in manually.
+huggingface_hub>=0.20.0

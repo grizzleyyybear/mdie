@@ -1,0 +1,49 @@
+# ---------------------------------------------------------------------------
+# MDIE — .gitignore
+# Keep the repo small enough to clone on PARAM Siddhi-AI (login node).
+# Heavy artefacts (datasets, checkpoints) are regenerated on the cluster.
+# ---------------------------------------------------------------------------
+
+# ---- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ---- IDE / OS -------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- Heavy ML artefacts (regenerated on cluster) --------------------------
+research_v2/datasets_cache/
+research_v2/checkpoints/
+research_v2/runs/
+research_v2/wandb/
+research_v2/mlruns/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.tar.gz
+*.zip
+*.7z
+
+# ---- SLURM job output -----------------------------------------------------
+job.*.out
+job.*.err
+slurm-*.out
+core.*
+
+# ---- Local secrets --------------------------------------------------------
+.env
+*.key
+*.pem

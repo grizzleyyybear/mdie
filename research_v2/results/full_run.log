@@ -1,0 +1,424 @@
+=== START 19-04-2026 13:09:41.02 === 
+ 
+====== STAGE 1: 50 epochs, 4 baselines ====== 
+
+========== Stage 1: SOTA baseline failure analysis ==========
+  Device  : cuda
+  Epochs  : 50
+  Batch   : 32
+  Models  : ['facenet', 'arcface', 'cosface', 'mobilefacenet']
+
+[1/4] Preparing LFW ...
+  [lfw] downloading via sklearn (min_faces_per_person=8) ...
+  [lfw] wrote 4822 images for 217 identities to C:\Users\kingm\Downloads\aicte\research_v2\datasets_cache\lfw
+      4822 images, 217 identities
+      verification pairs: 6000  (test ids: 44)
+
+[2/4] Training baseline: facenet
+      params: 23.48M
+  [facenet] epoch   1/50  train=0.4789  val=nan  48.2s
+  [facenet] epoch   2/50  train=0.4587  val=nan  13.9s
+  [facenet] epoch   3/50  train=0.4560  val=nan  14.3s
+  [facenet] epoch   4/50  train=0.4353  val=nan  14.2s
+  [facenet] epoch   5/50  train=0.4408  val=nan  14.9s
+  [facenet] epoch   6/50  train=0.4273  val=nan  14.6s
+  [facenet] epoch   7/50  train=0.3922  val=nan  15.4s
+  [facenet] epoch   8/50  train=0.3468  val=nan  15.4s
+  [facenet] epoch   9/50  train=0.3258  val=nan  15.9s
+  [facenet] epoch  10/50  train=0.3585  val=nan  15.4s
+  [facenet] epoch  11/50  train=0.3269  val=nan  16.3s
+  [facenet] epoch  12/50  train=0.3035  val=nan  16.3s
+  [facenet] epoch  13/50  train=0.2986  val=nan  16.3s
+  [facenet] epoch  14/50  train=0.2681  val=nan  16.2s
+  [facenet] epoch  15/50  train=0.2631  val=nan  16.4s
+  [facenet] epoch  16/50  train=0.3151  val=nan  16.9s
+  [facenet] epoch  17/50  train=0.2991  val=nan  16.2s
+  [facenet] epoch  18/50  train=0.2807  val=nan  16.6s
+  [facenet] epoch  19/50  train=0.2721  val=nan  16.4s
+  [facenet] epoch  20/50  train=0.2538  val=nan  17.3s
+  [facenet] epoch  21/50  train=0.2184  val=nan  16.2s
+  [facenet] epoch  22/50  train=0.1946  val=nan  17.0s
+  [facenet] epoch  23/50  train=0.1761  val=nan  17.1s
+  [facenet] epoch  24/50  train=0.1680  val=nan  16.5s
+  [facenet] epoch  25/50  train=0.1680  val=nan  17.2s
+  [facenet] epoch  26/50  train=0.1819  val=nan  16.9s
+  [facenet] epoch  27/50  train=0.1955  val=nan  17.2s
+  [facenet] epoch  28/50  train=0.1676  val=nan  16.6s
+  [facenet] epoch  29/50  train=0.1597  val=nan  17.2s
+  [facenet] epoch  30/50  train=0.1483  val=nan  17.0s
+  [facenet] epoch  31/50  train=0.1650  val=nan  16.7s
+  [facenet] epoch  32/50  train=0.1593  val=nan  17.1s
+  [facenet] epoch  33/50  train=0.1585  val=nan  16.7s
+  [facenet] epoch  34/50  train=0.1479  val=nan  17.1s
+  [facenet] epoch  35/50  train=0.1561  val=nan  16.4s
+  [facenet] epoch  36/50  train=0.1614  val=nan  17.2s
+  [facenet] epoch  37/50  train=0.1539  val=nan  17.0s
+  [facenet] epoch  38/50  train=0.1592  val=nan  16.9s
+  [facenet] epoch  39/50  train=0.1549  val=nan  17.3s
+  [facenet] epoch  40/50  train=0.1539  val=nan  16.9s
+  [facenet] epoch  41/50  train=0.1490  val=nan  17.0s
+  [facenet] epoch  42/50  train=0.1569  val=nan  16.4s
+  [facenet] epoch  43/50  train=0.1460  val=nan  17.1s
+  [facenet] epoch  44/50  train=0.1497  val=nan  16.9s
+  [facenet] epoch  45/50  train=0.1551  val=nan  17.2s
+  [facenet] epoch  46/50  train=0.1528  val=nan  17.2s
+  [facenet] epoch  47/50  train=0.1542  val=nan  16.7s
+  [facenet] epoch  48/50  train=0.1478  val=nan  17.3s
+  [facenet] epoch  49/50  train=0.1532  val=nan  16.5s
+  [facenet] epoch  50/50  train=0.1530  val=nan  17.3s
+
+[2/4] Training baseline: arcface
+      params: 43.91M
+  [arcface] epoch   1/50  train=36.8728  val=nan  29.3s
+  [arcface] epoch   2/50  train=33.2607  val=nan  29.3s
+  [arcface] epoch   3/50  train=30.7626  val=nan  29.4s
+  [arcface] epoch   4/50  train=28.0652  val=nan  29.4s
+  [arcface] epoch   5/50  train=24.7180  val=nan  29.6s
+  [arcface] epoch   6/50  train=22.0346  val=nan  29.4s
+  [arcface] epoch   7/50  train=19.4273  val=nan  29.6s
+  [arcface] epoch   8/50  train=17.0760  val=nan  29.6s
+  [arcface] epoch   9/50  train=15.4681  val=nan  29.6s
+  [arcface] epoch  10/50  train=14.0887  val=nan  29.5s
+  [arcface] epoch  11/50  train=12.7910  val=nan  29.5s
+  [arcface] epoch  12/50  train=11.5222  val=nan  29.4s
+  [arcface] epoch  13/50  train=10.6060  val=nan  29.5s
+  [arcface] epoch  14/50  train=9.7040  val=nan  29.6s
+  [arcface] epoch  15/50  train=8.7265  val=nan  29.6s
+  [arcface] epoch  16/50  train=7.8241  val=nan  29.7s
+  [arcface] epoch  17/50  train=6.9965  val=nan  29.7s
+  [arcface] epoch  18/50  train=6.0563  val=nan  29.8s
+  [arcface] epoch  19/50  train=5.2074  val=nan  30.0s
+  [arcface] epoch  20/50  train=4.4556  val=nan  30.1s
+  [arcface] epoch  21/50  train=3.5546  val=nan  30.0s
+  [arcface] epoch  22/50  train=2.8426  val=nan  29.9s
+  [arcface] epoch  23/50  train=2.0941  val=nan  30.3s
+  [arcface] epoch  24/50  train=1.6008  val=nan  30.1s
+  [arcface] epoch  25/50  train=1.1483  val=nan  30.4s
+  [arcface] epoch  26/50  train=0.8593  val=nan  30.1s
+  [arcface] epoch  27/50  train=0.5354  val=nan  30.4s
+  [arcface] epoch  28/50  train=0.3404  val=nan  30.3s
+  [arcface] epoch  29/50  train=0.2045  val=nan  30.3s
+  [arcface] epoch  30/50  train=0.1454  val=nan  30.1s
+  [arcface] epoch  31/50  train=0.1284  val=nan  30.2s
+  [arcface] epoch  32/50  train=0.0920  val=nan  30.2s
+  [arcface] epoch  33/50  train=0.0780  val=nan  31.0s
+  [arcface] epoch  34/50  train=0.0543  val=nan  30.6s
+  [arcface] epoch  35/50  train=0.0580  val=nan  30.5s
+  [arcface] epoch  36/50  train=0.0413  val=nan  30.2s
+  [arcface] epoch  37/50  train=0.0282  val=nan  30.4s
+  [arcface] epoch  38/50  train=0.0220  val=nan  30.3s
+  [arcface] epoch  39/50  train=0.0243  val=nan  30.3s
+  [arcface] epoch  40/50  train=0.0258  val=nan  30.4s
+  [arcface] epoch  41/50  train=0.0177  val=nan  30.5s
+  [arcface] epoch  42/50  train=0.0101  val=nan  30.4s
+  [arcface] epoch  43/50  train=0.0125  val=nan  30.5s
+  [arcface] epoch  44/50  train=0.0142  val=nan  30.4s
+  [arcface] epoch  45/50  train=0.0086  val=nan  30.5s
+  [arcface] epoch  46/50  train=0.0096  val=nan  32.4s
+  [arcface] epoch  47/50  train=0.0096  val=nan  33.9s
+  [arcface] epoch  48/50  train=0.0112  val=nan  30.7s
+  [arcface] epoch  49/50  train=0.0119  val=nan  30.5s
+  [arcface] epoch  50/50  train=0.0117  val=nan  30.4s
+
+[2/4] Training baseline: cosface
+      params: 43.91M
+  [cosface] epoch   1/50  train=28.5220  val=nan  30.6s
+  [cosface] epoch   2/50  train=23.9115  val=nan  30.6s
+  [cosface] epoch   3/50  train=21.3717  val=nan  30.5s
+  [cosface] epoch   4/50  train=18.3478  val=nan  30.6s
+  [cosface] epoch   5/50  train=15.5932  val=nan  30.5s
+  [cosface] epoch   6/50  train=13.6083  val=nan  30.6s
+  [cosface] epoch   7/50  train=12.1113  val=nan  30.6s
+  [cosface] epoch   8/50  train=10.4378  val=nan  30.5s
+  [cosface] epoch   9/50  train=9.4356  val=nan  30.5s
+  [cosface] epoch  10/50  train=8.2835  val=nan  30.5s
+  [cosface] epoch  11/50  train=7.2653  val=nan  30.4s
+  [cosface] epoch  12/50  train=6.5795  val=nan  30.3s
+  [cosface] epoch  13/50  train=5.7268  val=nan  30.4s
+  [cosface] epoch  14/50  train=5.1132  val=nan  30.6s
+  [cosface] epoch  15/50  train=4.3489  val=nan  30.5s
+  [cosface] epoch  16/50  train=3.6893  val=nan  30.4s
+  [cosface] epoch  17/50  train=3.1596  val=nan  30.4s
+  [cosface] epoch  18/50  train=2.5042  val=nan  30.6s
+  [cosface] epoch  19/50  train=2.0353  val=nan  30.5s
+  [cosface] epoch  20/50  train=1.6569  val=nan  30.5s
+  [cosface] epoch  21/50  train=1.2228  val=nan  30.7s
+  [cosface] epoch  22/50  train=0.9276  val=nan  30.7s
+  [cosface] epoch  23/50  train=0.7416  val=nan  30.4s
+  [cosface] epoch  24/50  train=0.5851  val=nan  30.8s
+  [cosface] epoch  25/50  train=0.3816  val=nan  30.6s
+  [cosface] epoch  26/50  train=0.2881  val=nan  30.6s
+  [cosface] epoch  27/50  train=0.2452  val=nan  30.7s
+  [cosface] epoch  28/50  train=0.1516  val=nan  30.7s
+  [cosface] epoch  29/50  train=0.1045  val=nan  30.5s
+  [cosface] epoch  30/50  train=0.1119  val=nan  30.5s
+  [cosface] epoch  31/50  train=0.0697  val=nan  30.5s
+  [cosface] epoch  32/50  train=0.0434  val=nan  30.6s
+  [cosface] epoch  33/50  train=0.0422  val=nan  30.7s
+  [cosface] epoch  34/50  train=0.0254  val=nan  30.6s
+  [cosface] epoch  35/50  train=0.0296  val=nan  30.7s
+  [cosface] epoch  36/50  train=0.0219  val=nan  30.6s
+  [cosface] epoch  37/50  train=0.0168  val=nan  30.4s
+  [cosface] epoch  38/50  train=0.0213  val=nan  30.8s
+  [cosface] epoch  39/50  train=0.0153  val=nan  30.4s
+  [cosface] epoch  40/50  train=0.0163  val=nan  30.8s
+  [cosface] epoch  41/50  train=0.0143  val=nan  30.6s
+  [cosface] epoch  42/50  train=0.0130  val=nan  30.7s
+  [cosface] epoch  43/50  train=0.0132  val=nan  30.7s
+  [cosface] epoch  44/50  train=0.0134  val=nan  30.8s
+  [cosface] epoch  45/50  train=0.0111  val=nan  30.7s
+  [cosface] epoch  46/50  train=0.0149  val=nan  30.9s
+  [cosface] epoch  47/50  train=0.0097  val=nan  30.8s
+  [cosface] epoch  48/50  train=0.0108  val=nan  30.7s
+  [cosface] epoch  49/50  train=0.0118  val=nan  31.7s
+  [cosface] epoch  50/50  train=0.0114  val=nan  30.8s
+
+[2/4] Training baseline: mobilefacenet
+      params: 1.29M
+  [mobilefacenet] epoch   1/50  train=35.5492  val=nan  14.8s
+  [mobilefacenet] epoch   2/50  train=29.4263  val=nan  8.8s
+  [mobilefacenet] epoch   3/50  train=25.2608  val=nan  9.1s
+  [mobilefacenet] epoch   4/50  train=21.8323  val=nan  9.6s
+  [mobilefacenet] epoch   5/50  train=18.7842  val=nan  8.6s
+  [mobilefacenet] epoch   6/50  train=16.3989  val=nan  8.5s
+  [mobilefacenet] epoch   7/50  train=14.4382  val=nan  9.5s
+  [mobilefacenet] epoch   8/50  train=12.2637  val=nan  9.6s
+  [mobilefacenet] epoch   9/50  train=10.5104  val=nan  11.6s
+  [mobilefacenet] epoch  10/50  train=9.0363  val=nan  10.4s
+  [mobilefacenet] epoch  11/50  train=7.8976  val=nan  11.3s
+  [mobilefacenet] epoch  12/50  train=6.6807  val=nan  9.9s
+  [mobilefacenet] epoch  13/50  train=5.7196  val=nan  9.6s
+  [mobilefacenet] epoch  14/50  train=4.8017  val=nan  9.5s
+  [mobilefacenet] epoch  15/50  train=3.8573  val=nan  9.8s
+  [mobilefacenet] epoch  16/50  train=3.3802  val=nan  9.1s
+  [mobilefacenet] epoch  17/50  train=2.6931  val=nan  8.3s
+  [mobilefacenet] epoch  18/50  train=2.0743  val=nan  8.2s
+  [mobilefacenet] epoch  19/50  train=1.7466  val=nan  8.2s
+  [mobilefacenet] epoch  20/50  train=1.3697  val=nan  8.1s
+  [mobilefacenet] epoch  21/50  train=0.9674  val=nan  7.9s
+  [mobilefacenet] epoch  22/50  train=0.7464  val=nan  8.3s
+  [mobilefacenet] epoch  23/50  train=0.5154  val=nan  8.0s
+  [mobilefacenet] epoch  24/50  train=0.3532  val=nan  8.0s
+  [mobilefacenet] epoch  25/50  train=0.2523  val=nan  8.0s
+  [mobilefacenet] epoch  26/50  train=0.1789  val=nan  8.0s
+  [mobilefacenet] epoch  27/50  train=0.1100  val=nan  8.0s
+  [mobilefacenet] epoch  28/50  train=0.0885  val=nan  8.0s
+  [mobilefacenet] epoch  29/50  train=0.0669  val=nan  8.2s
+  [mobilefacenet] epoch  30/50  train=0.0459  val=nan  7.9s
+  [mobilefacenet] epoch  31/50  train=0.0421  val=nan  8.0s
+  [mobilefacenet] epoch  32/50  train=0.0409  val=nan  8.2s
+  [mobilefacenet] epoch  33/50  train=0.0289  val=nan  8.0s
+  [mobilefacenet] epoch  34/50  train=0.0177  val=nan  8.1s
+  [mobilefacenet] epoch  35/50  train=0.0248  val=nan  7.9s
+  [mobilefacenet] epoch  36/50  train=0.0094  val=nan  7.9s
+  [mobilefacenet] epoch  37/50  train=0.0144  val=nan  8.2s
+  [mobilefacenet] epoch  38/50  train=0.0139  val=nan  8.0s
+  [mobilefacenet] epoch  39/50  train=0.0150  val=nan  8.0s
+  [mobilefacenet] epoch  40/50  train=0.0101  val=nan  7.9s
+  [mobilefacenet] epoch  41/50  train=0.0062  val=nan  8.0s
+  [mobilefacenet] epoch  42/50  train=0.0089  val=nan  7.9s
+  [mobilefacenet] epoch  43/50  train=0.0064  val=nan  7.9s
+  [mobilefacenet] epoch  44/50  train=0.0085  val=nan  8.2s
+  [mobilefacenet] epoch  45/50  train=0.0052  val=nan  8.2s
+  [mobilefacenet] epoch  46/50  train=0.0047  val=nan  8.0s
+  [mobilefacenet] epoch  47/50  train=0.0065  val=nan  8.1s
+  [mobilefacenet] epoch  48/50  train=0.0053  val=nan  8.1s
+  [mobilefacenet] epoch  49/50  train=0.0061  val=nan  7.9s
+  [mobilefacenet] epoch  50/50  train=0.0078  val=nan  7.9s
+
+[3/4] Evaluating ...
+  evaluating facenet
+    [facenet       ] mod=clean              AUC=0.672  EER=0.361  TAR@1e-3=0.006
+    [facenet       ] mod=surgery_nose       AUC=0.670  EER=0.365  TAR@1e-3=0.007
+    [facenet       ] mod=surgery_jaw        AUC=0.673  EER=0.359  TAR@1e-3=0.006
+    [facenet       ] mod=disguise_glasses   AUC=0.533  EER=0.475  TAR@1e-3=0.001
+    [facenet       ] mod=disguise_mask      AUC=0.582  EER=0.436  TAR@1e-3=0.002
+    [facenet       ] mod=occlusion_random   AUC=0.648  EER=0.386  TAR@1e-3=0.007
+    [facenet       ] mod=aging              AUC=0.658  EER=0.378  TAR@1e-3=0.007
+    [facenet       ] mod=low_light          AUC=0.611  EER=0.414  TAR@1e-3=0.005
+    [facenet       ] mod=adversarial        AUC=0.669  EER=0.363  TAR@1e-3=0.009
+  evaluating arcface
+    [arcface       ] mod=clean              AUC=0.902  EER=0.180  TAR@1e-3=0.196
+    [arcface       ] mod=surgery_nose       AUC=0.899  EER=0.188  TAR@1e-3=0.158
+    [arcface       ] mod=surgery_jaw        AUC=0.895  EER=0.190  TAR@1e-3=0.143
+    [arcface       ] mod=disguise_glasses   AUC=0.843  EER=0.239  TAR@1e-3=0.072
+    [arcface       ] mod=disguise_mask      AUC=0.704  EER=0.351  TAR@1e-3=0.014
+    [arcface       ] mod=occlusion_random   AUC=0.865  EER=0.216  TAR@1e-3=0.111
+    [arcface       ] mod=aging              AUC=0.882  EER=0.203  TAR@1e-3=0.130
+    [arcface       ] mod=low_light          AUC=0.848  EER=0.235  TAR@1e-3=0.107
+    [arcface       ] mod=adversarial        AUC=0.901  EER=0.182  TAR@1e-3=0.211
+  evaluating cosface
+    [cosface       ] mod=clean              AUC=0.903  EER=0.179  TAR@1e-3=0.176
+    [cosface       ] mod=surgery_nose       AUC=0.902  EER=0.180  TAR@1e-3=0.187
+    [cosface       ] mod=surgery_jaw        AUC=0.898  EER=0.183  TAR@1e-3=0.157
+    [cosface       ] mod=disguise_glasses   AUC=0.808  EER=0.271  TAR@1e-3=0.043
+    [cosface       ] mod=disguise_mask      AUC=0.729  EER=0.332  TAR@1e-3=0.017
+    [cosface       ] mod=occlusion_random   AUC=0.857  EER=0.228  TAR@1e-3=0.123
+    [cosface       ] mod=aging              AUC=0.891  EER=0.193  TAR@1e-3=0.135
+    [cosface       ] mod=low_light          AUC=0.839  EER=0.243  TAR@1e-3=0.073
+    [cosface       ] mod=adversarial        AUC=0.901  EER=0.180  TAR@1e-3=0.160
+  evaluating mobilefacenet
+    [mobilefacenet ] mod=clean              AUC=0.904  EER=0.170  TAR@1e-3=0.183
+    [mobilefacenet ] mod=surgery_nose       AUC=0.902  EER=0.170  TAR@1e-3=0.167
+    [mobilefacenet ] mod=surgery_jaw        AUC=0.901  EER=0.176  TAR@1e-3=0.195
+    [mobilefacenet ] mod=disguise_glasses   AUC=0.765  EER=0.305  TAR@1e-3=0.030
+    [mobilefacenet ] mod=disguise_mask      AUC=0.733  EER=0.321  TAR@1e-3=0.012
+    [mobilefacenet ] mod=occlusion_random   AUC=0.804  EER=0.275  TAR@1e-3=0.098
+    [mobilefacenet ] mod=aging              AUC=0.871  EER=0.210  TAR@1e-3=0.109
+    [mobilefacenet ] mod=low_light          AUC=0.842  EER=0.243  TAR@1e-3=0.099
+    [mobilefacenet ] mod=adversarial        AUC=0.896  EER=0.183  TAR@1e-3=0.159
+
+[4/4] Producing publication artefacts ...
+
+[done] Artefacts under C:\Users\kingm\Downloads\aicte\research_v2\figures and C:\Users\kingm\Downloads\aicte\research_v2\results
+ 
+====== STAGE 2: 40 epochs, MDIE + ablation ====== 
+
+========== Stage 2: Train + evaluate MDIE ==========
+  Device : cuda
+  Epochs : 40
+  Batch  : 24
+
+  pairs: 6000  classes: 173
+
+[*] training MDIE-full
+c:\Users\kingm\Downloads\aicte\research_v2\src\novel\region_attention.py:89: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  self.encoder = nn.TransformerEncoder(enc, num_layers=layers)
+    params: 45.67M
+  [mdie-full] epoch   1/40  total=39.6338  id=36.5839  iccl=1.7978  mod=2.1510  92.1s
+  [mdie-full] epoch   2/40  total=38.4161  id=35.6718  iccl=1.2399  mod=2.1243  85.8s
+  [mdie-full] epoch   3/40  total=37.9766  id=35.2615  iccl=1.1732  mod=2.1285  87.0s
+  [mdie-full] epoch   4/40  total=37.3485  id=34.5298  iccl=1.3777  mod=2.1299  90.4s
+  [mdie-full] epoch   5/40  total=36.5464  id=33.2225  iccl=2.4054  mod=2.1212  86.8s
+  [mdie-full] epoch   6/40  total=34.7895  id=30.8869  iccl=3.5483  mod=2.1285  90.2s
+  [mdie-full] epoch   7/40  total=31.0947  id=26.8302  iccl=4.2748  mod=2.1270  90.5s
+  [mdie-full] epoch   8/40  total=25.1256  id=20.7128  iccl=4.5898  mod=2.1179  86.4s
+  [mdie-full] epoch   9/40  total=22.1639  id=17.5822  iccl=4.9147  mod=2.1244  90.4s
+  [mdie-full] epoch  10/40  total=24.2904  id=19.7229  iccl=4.8631  mod=2.1360  90.2s
+  [mdie-full] epoch  11/40  total=23.6708  id=19.6928  iccl=3.7467  mod=2.1047  91.4s
+  [mdie-full] epoch  12/40  total=24.3921  id=19.7973  iccl=4.9635  mod=2.1131  92.3s
+  [mdie-full] epoch  13/40  total=24.1700  id=19.6147  iccl=4.9100  mod=2.1003  84.3s
+  [mdie-full] epoch  14/40  total=24.0628  id=19.7171  iccl=4.4877  mod=2.1018  86.3s
+  [mdie-full] epoch  15/40  total=24.2738  id=19.7961  iccl=4.7321  mod=2.1116  80.8s
+  [mdie-full] epoch  16/40  total=23.9905  id=19.6037  iccl=4.5442  mod=2.1147  82.8s
+  [mdie-full] epoch  17/40  total=23.7764  id=19.6114  iccl=4.1496  mod=2.0902  84.9s
+  [mdie-full] epoch  18/40  total=23.4184  id=19.4691  iccl=3.7607  mod=2.0690  86.4s
+  [mdie-full] epoch  19/40  total=23.2207  id=19.2296  iccl=3.8552  mod=2.0635  87.2s
+  [mdie-full] epoch  20/40  total=23.1623  id=19.3029  iccl=3.5740  mod=2.0725  87.7s
+  [mdie-full] epoch  21/40  total=22.8204  id=19.0784  iccl=3.3618  mod=2.0612  89.4s
+  [mdie-full] epoch  22/40  total=22.6794  id=18.9817  iccl=3.2604  mod=2.0676  90.4s
+  [mdie-full] epoch  23/40  total=22.8161  id=19.0178  iccl=3.4855  mod=2.0555  88.0s
+  [mdie-full] epoch  24/40  total=23.5383  id=19.2702  iccl=4.3252  mod=2.1055  91.1s
+  [mdie-full] epoch  25/40  total=22.9574  id=19.0404  iccl=3.6606  mod=2.0867  89.0s
+  [mdie-full] epoch  26/40  total=22.7478  id=18.8806  iccl=3.5966  mod=2.0689  87.3s
+  [mdie-full] epoch  27/40  total=22.9353  id=18.9634  iccl=3.7588  mod=2.0925  87.4s
+  [mdie-full] epoch  28/40  total=22.7310  id=18.8539  iccl=3.5784  mod=2.0878  84.5s
+  [mdie-full] epoch  29/40  total=22.5448  id=18.7654  iccl=3.4182  mod=2.0703  86.4s
+  [mdie-full] epoch  30/40  total=22.5098  id=18.7349  iccl=3.4499  mod=2.0499  86.8s
+  [mdie-full] epoch  31/40  total=22.5098  id=18.6567  iccl=3.5461  mod=2.0801  83.4s
+  [mdie-full] epoch  32/40  total=22.4269  id=18.6290  iccl=3.4674  mod=2.0642  83.5s
+  [mdie-full] epoch  33/40  total=22.2895  id=18.5896  iccl=3.2542  mod=2.0729  84.2s
+  [mdie-full] epoch  34/40  total=22.4161  id=18.6135  iccl=3.4653  mod=2.0699  84.2s
+  [mdie-full] epoch  35/40  total=22.3617  id=18.5375  iccl=3.4837  mod=2.0823  84.6s
+  [mdie-full] epoch  36/40  total=22.3031  id=18.5133  iccl=3.4273  mod=2.0761  85.1s
+  [mdie-full] epoch  37/40  total=22.2026  id=18.4647  iccl=3.3020  mod=2.0869  84.4s
+  [mdie-full] epoch  38/40  total=22.1835  id=18.5187  iccl=3.1891  mod=2.0703  84.5s
+  [mdie-full] epoch  39/40  total=22.1220  id=18.4267  iccl=3.2636  mod=2.0635  85.4s
+  [mdie-full] epoch  40/40  total=22.2427  id=18.4747  iccl=3.3899  mod=2.0730  84.9s
+
+[*] training MDIE-noRATA
+    params: 44.04M
+  [mdie-norata] epoch   1/40  total=39.1408  id=36.2620  iccl=1.4549  mod=2.1514  85.9s
+  [mdie-norata] epoch   2/40  total=34.5924  id=32.2826  iccl=0.4176  mod=2.1010  84.5s
+  [mdie-norata] epoch   3/40  total=30.8279  id=28.7083  iccl=0.0642  mod=2.0874  84.7s
+  [mdie-norata] epoch   4/40  total=27.1423  id=25.0663  iccl=0.0165  mod=2.0677  85.6s
+  [mdie-norata] epoch   5/40  total=23.1722  id=21.0997  iccl=0.0105  mod=2.0673  84.8s
+  [mdie-norata] epoch   6/40  total=20.1972  id=18.1148  iccl=0.0093  mod=2.0778  86.6s
+  [mdie-norata] epoch   7/40  total=17.8864  id=15.7967  iccl=0.0079  mod=2.0858  84.5s
+  [mdie-norata] epoch   8/40  total=15.8285  id=13.7436  iccl=0.0081  mod=2.0809  85.4s
+  [mdie-norata] epoch   9/40  total=14.0258  id=11.9285  iccl=0.0082  mod=2.0931  84.8s
+  [mdie-norata] epoch  10/40  total=12.2998  id=10.1886  iccl=0.0063  mod=2.1080  84.8s
+  [mdie-norata] epoch  11/40  total=10.6885  id=8.5723  iccl=0.0079  mod=2.1123  84.4s
+  [mdie-norata] epoch  12/40  total=8.9816  id=6.8703  iccl=0.0067  mod=2.1080  87.6s
+  [mdie-norata] epoch  13/40  total=7.6124  id=5.5027  iccl=0.0082  mod=2.1055  88.0s
+  [mdie-norata] epoch  14/40  total=6.1997  id=4.0772  iccl=0.0075  mod=2.1187  86.7s
+  [mdie-norata] epoch  15/40  total=4.9606  id=2.8278  iccl=0.0081  mod=2.1287  91.6s
+  [mdie-norata] epoch  16/40  total=3.9369  id=1.8128  iccl=0.0096  mod=2.1194  85.2s
+  [mdie-norata] epoch  17/40  total=3.3533  id=1.2281  iccl=0.0107  mod=2.1199  87.9s
+  [mdie-norata] epoch  18/40  total=2.9575  id=0.8280  iccl=0.0104  mod=2.1243  85.9s
+  [mdie-norata] epoch  19/40  total=2.6894  id=0.5663  iccl=0.0137  mod=2.1163  85.9s
+  [mdie-norata] epoch  20/40  total=2.5858  id=0.4479  iccl=0.0123  mod=2.1317  85.7s
+  [mdie-norata] epoch  21/40  total=2.4772  id=0.3534  iccl=0.0139  mod=2.1169  88.0s
+  [mdie-norata] epoch  22/40  total=2.4729  id=0.3438  iccl=0.0146  mod=2.1218  86.0s
+  [mdie-norata] epoch  23/40  total=2.4323  id=0.3088  iccl=0.0128  mod=2.1171  85.7s
+  [mdie-norata] epoch  24/40  total=2.3582  id=0.2235  iccl=0.0152  mod=2.1271  78.2s
+  [mdie-norata] epoch  25/40  total=2.3433  id=0.2140  iccl=0.0150  mod=2.1218  77.4s
+  [mdie-norata] epoch  26/40  total=2.3028  id=0.1687  iccl=0.0151  mod=2.1266  77.9s
+  [mdie-norata] epoch  27/40  total=2.2507  id=0.1328  iccl=0.0127  mod=2.1115  78.9s
+  [mdie-norata] epoch  28/40  total=2.2487  id=0.1170  iccl=0.0136  mod=2.1249  78.5s
+  [mdie-norata] epoch  29/40  total=2.2382  id=0.1023  iccl=0.0125  mod=2.1297  77.9s
+  [mdie-norata] epoch  30/40  total=2.2297  id=0.0970  iccl=0.0145  mod=2.1255  77.8s
+  [mdie-norata] epoch  31/40  total=2.2348  id=0.0916  iccl=0.0148  mod=2.1358  78.0s
+  [mdie-norata] epoch  32/40  total=2.2252  id=0.0889  iccl=0.0137  mod=2.1295  77.9s
+  [mdie-norata] epoch  33/40  total=2.2059  id=0.0702  iccl=0.0166  mod=2.1274  77.3s
+  [mdie-norata] epoch  34/40  total=2.2068  id=0.0721  iccl=0.0141  mod=2.1276  77.6s
+  [mdie-norata] epoch  35/40  total=2.2089  id=0.0620  iccl=0.0143  mod=2.1398  77.7s
+  [mdie-norata] epoch  36/40  total=2.1915  id=0.0543  iccl=0.0134  mod=2.1305  78.3s
+  [mdie-norata] epoch  37/40  total=2.1879  id=0.0554  iccl=0.0140  mod=2.1254  79.7s
+  [mdie-norata] epoch  38/40  total=2.1903  id=0.0558  iccl=0.0145  mod=2.1273  78.1s
+  [mdie-norata] epoch  39/40  total=2.2013  id=0.0557  iccl=0.0151  mod=2.1381  78.1s
+  [mdie-norata] epoch  40/40  total=2.1912  id=0.0550  iccl=0.0148  mod=2.1288  78.4s
+
+[*] training MDIE-noAMD
+c:\Users\kingm\Downloads\aicte\research_v2\src\novel\region_attention.py:89: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  self.encoder = nn.TransformerEncoder(enc, num_layers=layers)
+    params: 45.54M
+  [mdie-noamd] epoch   1/40  total=37.3686  id=36.5247  iccl=1.6879  mod=0.0000  79.5s
+  [mdie-noamd] epoch   2/40  total=36.1440  id=35.5928  iccl=1.1025  mod=0.0000  79.8s
+  [mdie-noamd] epoch   3/40  total=35.8406  id=35.1805  iccl=1.3202  mod=0.0000  79.6s
+  [mdie-noamd] epoch   4/40  total=34.7486  id=34.0866  iccl=1.3241  mod=0.0000  79.7s
+  [mdie-noamd] epoch   5/40  total=33.5039  id=32.8364  iccl=1.3351  mod=0.0000  79.7s
+  [mdie-noamd] epoch   6/40  total=32.5223  id=31.5347  iccl=1.9752  mod=0.0000  79.7s
+  [mdie-noamd] epoch   7/40  total=30.3966  id=29.0229  iccl=2.7475  mod=0.0000  80.0s
+  [mdie-noamd] epoch   8/40  total=27.4623  id=25.6163  iccl=3.6921  mod=0.0000  79.6s
+  [mdie-noamd] epoch   9/40  total=22.8816  id=20.7031  iccl=4.3570  mod=0.0000  79.6s
+  [mdie-noamd] epoch  10/40  total=19.7994  id=17.3723  iccl=4.8542  mod=0.0000  78.7s
+  [mdie-noamd] epoch  11/40  total=21.4559  id=19.1479  iccl=4.6161  mod=0.0000  78.7s
+  [mdie-noamd] epoch  12/40  total=21.4410  id=19.3293  iccl=4.2234  mod=0.0000  78.8s
+  [mdie-noamd] epoch  13/40  total=21.4889  id=19.2968  iccl=4.3841  mod=0.0000  78.4s
+  [mdie-noamd] epoch  14/40  total=21.7755  id=19.3732  iccl=4.8045  mod=0.0000  78.1s
+  [mdie-noamd] epoch  15/40  total=21.4483  id=19.0983  iccl=4.7001  mod=0.0000  78.1s
+  [mdie-noamd] epoch  16/40  total=21.2579  id=19.0321  iccl=4.4515  mod=0.0000  78.2s
+  [mdie-noamd] epoch  17/40  total=21.8412  id=19.5447  iccl=4.5929  mod=0.0000  78.0s
+  [mdie-noamd] epoch  18/40  total=21.3096  id=19.2767  iccl=4.0659  mod=0.0000  78.5s
+  [mdie-noamd] epoch  19/40  total=20.7968  id=19.0229  iccl=3.5478  mod=0.0000  78.2s
+  [mdie-noamd] epoch  20/40  total=20.7094  id=18.9459  iccl=3.5269  mod=0.0000  78.3s
+  [mdie-noamd] epoch  21/40  total=21.2044  id=19.1099  iccl=4.1890  mod=0.0000  78.5s
+  [mdie-noamd] epoch  22/40  total=20.9453  id=18.8804  iccl=4.1298  mod=0.0000  78.1s
+  [mdie-noamd] epoch  23/40  total=20.4593  id=18.7688  iccl=3.3810  mod=0.0000  77.8s
+  [mdie-noamd] epoch  24/40  total=20.4120  id=18.6446  iccl=3.5349  mod=0.0000  77.8s
+  [mdie-noamd] epoch  25/40  total=20.7824  id=18.6317  iccl=4.3014  mod=0.0000  78.0s
+  [mdie-noamd] epoch  26/40  total=20.2262  id=18.4346  iccl=3.5830  mod=0.0000  77.9s
+  [mdie-noamd] epoch  27/40  total=19.8872  id=18.3612  iccl=3.0520  mod=0.0000  77.8s
+  [mdie-noamd] epoch  28/40  total=19.9638  id=18.3002  iccl=3.3271  mod=0.0000  77.5s
+  [mdie-noamd] epoch  29/40  total=19.7255  id=18.2051  iccl=3.0409  mod=0.0000  77.6s
+  [mdie-noamd] epoch  30/40  total=19.5309  id=18.1502  iccl=2.7615  mod=0.0000  77.7s
+  [mdie-noamd] epoch  31/40  total=19.5334  id=18.1045  iccl=2.8579  mod=0.0000  77.7s
+  [mdie-noamd] epoch  32/40  total=19.4479  id=18.0013  iccl=2.8932  mod=0.0000  77.7s
+  [mdie-noamd] epoch  33/40  total=19.4717  id=18.0201  iccl=2.9032  mod=0.0000  77.9s
+  [mdie-noamd] epoch  34/40  total=19.3929  id=17.9499  iccl=2.8860  mod=0.0000  77.9s
+  [mdie-noamd] epoch  35/40  total=19.4051  id=17.8971  iccl=3.0161  mod=0.0000  78.0s
+  [mdie-noamd] epoch  36/40  total=19.3359  id=17.8785  iccl=2.9149  mod=0.0000  77.7s
+  [mdie-noamd] epoch  37/40  total=19.3030  id=17.8266  iccl=2.9528  mod=0.0000  77.5s
+  [mdie-noamd] epoch  38/40  total=19.2850  id=17.8207  iccl=2.9287  mod=0.0000  77.9s
+  [mdie-noamd] epoch  39/40  total=19.2954  id=17.8302  iccl=2.9303  mod=0.0000  77.8s
+  [mdie-noamd] epoch  40/40  total=19.1254  id=17.7543  iccl=2.7421  mod=0.0000  77.7s
+
+[*] evaluating ...
+c:\Users\kingm\Downloads\aicte\research_v2\src\novel\region_attention.py:89: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  self.encoder = nn.TransformerEncoder(enc, num_layers=layers)
+c:\Users\kingm\Downloads\aicte\research_v2\src\novel\region_attention.py:89: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  self.encoder = nn.TransformerEncoder(enc, num_layers=layers)
+
+[done] Stage 2 artefacts under C:\Users\kingm\Downloads\aicte\research_v2\figures and C:\Users\kingm\Downloads\aicte\research_v2\results
+=== DONE 19-04-2026 19:04:52.62 === 

@@ -1,0 +1,118 @@
+{
+  "overall": {
+    "arcface": {
+      "auc": 0.8170945987654321,
+      "eer": 0.25569444444444445,
+      "eer_threshold": 0.1488250195980072,
+      "tar_at_far=0.1": 0.5527777777777778,
+      "tar_at_far=0.01": 0.2325,
+      "tar_at_far=0.001": 0.06527777777777778,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  },
+  "per_modification": {
+    "arcface": {
+      "clean": {
+        "auc": 0.8641874999999999,
+        "eer": 0.21250000000000002,
+        "eer_threshold": 0.17909923195838928,
+        "tar_at_far=0.1": 0.645,
+        "tar_at_far=0.01": 0.3525,
+        "tar_at_far=0.001": 0.1075,
+        "n_pairs": 800,
+        "n_pos": 400,
+        "n_neg": 400
+      },
+      "surgery_nose": {
+        "auc": 0.86423125,
+        "eer": 0.21875,
+        "eer_threshold": 0.1773197054862976,
+        "tar_at_far=0.1": 0.6425,
+        "tar_at_far=0.01": 0.35,
+        "tar_at_far=0.001": 0.095,
+        "n_pairs": 800,
+        "n_pos": 400,
+        "n_neg": 400
+      },
+      "surgery_jaw": {
+        "auc": 0.8656812500000002,
+        "eer": 0.20750000000000002,
+        "eer_threshold": 0.18136194348335266,
+        "tar_at_far=0.1": 0.635,
+        "tar_at_far=0.01": 0.3475,
+        "tar_at_far=0.001": 0.1075,
+        "n_pairs": 800,
+        "n_pos": 400,
+        "n_neg": 400
+      },
+      "disguise_glasses": {
+        "auc": 0.80759375,
+        "eer": 0.27375000000000005,
+        "eer_threshold": 0.08817995339632034,
+        "tar_at_far=0.1": 0.535,
+        "tar_at_far=0.01": 0.095,
+        "tar_at_far=0.001": 0.06,
+        "n_pairs": 800,
+        "n_pos": 400,
+        "n_neg": 400
+      },
+      "disguise_mask": {
+        "auc": 0.7295812500000001,
+        "eer": 0.32875,
+        "eer_threshold": 0.07421427965164185,
+        "tar_at_far=0.1": 0.3925,
+        "tar_at_far=0.01": 0.0725,
+        "tar_at_far=0.001": 0.0,
+        "n_pairs": 800,
+        "n_pos": 400,
+        "n_neg": 400
+      },
+      "occlusion_random": {
+        "auc": 0.803725,
+        "eer": 0.27,
+        "eer_threshold": 0.14217272400856018,
+        "tar_at_far=0.1": 0.555,
+        "tar_at_far=0.01": 0.1725,
+        "tar_at_far=0.001": 0.0775,
+        "n_pairs": 800,
+        "n_pos": 400,
+        "n_neg": 400
+      },
+      "aging": {
+        "auc": 0.8468687500000001,
+        "eer": 0.22375,
+        "eer_threshold": 0.18477502465248108,
+        "tar_at_far=0.1": 0.605,
+        "tar_at_far=0.01": 0.23,
+        "tar_at_far=0.001": 0.0875,
+        "n_pairs": 800,
+        "n_pos": 400,
+        "n_neg": 400
+      },
+      "low_light": {
+        "auc": 0.74581875,
+        "eer": 0.32375,
+        "eer_threshold": 0.1440240442752838,
+        "tar_at_far=0.1": 0.3975,
+        "tar_at_far=0.01": 0.0725,
+        "tar_at_far=0.001": 0.02,
+        "n_pairs": 800,
+        "n_pos": 400,
+        "n_neg": 400
+      },
+      "adversarial": {
+        "auc": 0.8640499999999999,
+        "eer": 0.22000000000000003,
+        "eer_threshold": 0.17789652943611145,
+        "tar_at_far=0.1": 0.6425,
+        "tar_at_far=0.01": 0.3525,
+        "tar_at_far=0.001": 0.0925,
+        "n_pairs": 800,
+        "n_pos": 400,
+        "n_neg": 400
+      }
+    }
+  }
+}

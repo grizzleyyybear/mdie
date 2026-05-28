@@ -1,0 +1,71 @@
+{
+  "run_name": "stage2",
+  "timestamp": "20260519_202407",
+  "git_sha": "8c6aa78",
+  "python": "3.14.2",
+  "platform": "Windows-10-10.0-SP0",
+  "torch": "2.11.0+cu128",
+  "cuda_available": true,
+  "cuda_device": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "argv": [
+    "C:\\Users\\kingm\\Downloads\\aicte\\research_v2\\src\\run_stage2.py",
+    "--quick",
+    "--workers",
+    "0",
+    "--balanced-sampler",
+    "--classes-per-batch",
+    "8",
+    "--samples-per-class",
+    "4"
+  ],
+  "settings": {
+    "train": {
+      "image_size": 112,
+      "batch_size": 32,
+      "epochs": 25,
+      "lr": 0.001,
+      "weight_decay": 0.0005,
+      "warmup_epochs": 2,
+      "grad_accum_steps": 2,
+      "embedding_dim": 512,
+      "arcface_margin": 0.5,
+      "arcface_scale": 64.0,
+      "cosface_margin": 0.35,
+      "triplet_margin": 0.3
+    },
+    "eval": {
+      "n_pos_pairs": 400,
+      "n_neg_pairs": 400,
+      "far_targets": [
+        0.1,
+        0.01,
+        0.001
+      ]
+    },
+    "novel": {
+      "use_region_prior": true,
+      "use_amd": true,
+      "use_iccl": true,
+      "amd_lambda": 0.1,
+      "iccl_lambda": 0.5,
+      "n_modification_classes": 9
+    }
+  },
+  "extra": {
+    "epochs": 4,
+    "batch": 32,
+    "lr": 0.001,
+    "workers": 0,
+    "grad_clip": 5.0,
+    "warmup_epochs": 1,
+    "channels_last": false,
+    "val_pairs": 200,
+    "balanced_sampler": true,
+    "classes_per_batch": 8,
+    "samples_per_class": 4,
+    "compile_model": false,
+    "resume": false,
+    "quick": true,
+    "ablation": false
+  }
+}
