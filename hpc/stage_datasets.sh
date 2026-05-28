@@ -69,42 +69,75 @@ if _lfw_ok; then
     echo "[lfw] already staged at $LFW_DIR"
 else
     LFW_TGZ="$CACHE_ROOT/lfw/lfw.tgz"
+    LFW_HF_TGZ="$CACHE_ROOT/lfw/lfw_hf.tgz"
     mkdir -p "$CACHE_ROOT/lfw"
 
-    # If user pre-uploaded the tarball, use it directly.
-    if [[ ! -s "$LFW_TGZ" ]]; then
-        fetched_url=""
-        for url in "${LFW_URLS[@]}"; do
-            for attempt in 1 2; do
-                echo "[lfw] try $attempt: $url"
-                if wget --tries=3 --timeout=120 --show-progress -O "$LFW_TGZ" "$url"; then
-                    if [[ -s "$LFW_TGZ" ]]; then fetched_url="$url"; break; fi
-                fi
-                echo "[lfw] failed; retrying..."
-                sleep 3
-            done
-            [[ -n "$fetched_url" ]] && break
-        done
+    # Path A: HF mirror tarball (marcelohaps/lfw layout) pre-uploaded.
+    if [[ -s "$LFW_HF_TGZ" ]]; then
+        echo "[lfw] using HF mirror tarball at $LFW_HF_TGZ"
+        tmp_extract="$CACHE_ROOT/lfw/_hf_tmp"
+        rm -rf "$tmp_extract"; mkdir -p "$tmp_extract"
+        tar -xzf "$LFW_HF_TGZ" -C "$tmp_extract"
 
-        if [[ -z "$fetched_url" ]]; then
-            rm -f "$LFW_TGZ"
-            echo ""
-            echo "[lfw] ERROR: could not fetch LFW from any mirror."
-            echo "       Force the CDAC proxy and retry:"
-            echo "           PARAM_USE_PROXY=1 bash hpc/stage_datasets.sh"
-            echo "       Or download lfw.tgz on a machine with internet and scp it to:"
-            echo "           $LFW_TGZ"
-            echo "       Then re-run:  bash hpc/stage_datasets.sh"
-            exit 1
-        fi
-        echo "[lfw] downloaded from $fetched_url"
+        # Flatten train/images/<shard>/<Name>_NNNN.jpg into LFW_DIR/<Name>/<file>.jpg
+        echo "[lfw] flattening HF sharded layout into per-identity dirs..."
+        python - "$tmp_extract" "$LFW_DIR" <<'PY'
+import os, re, shutil, sys
+from pathlib import Path
+src = Path(sys.argv[1]); dst = Path(sys.argv[2])
+dst.mkdir(parents=True, exist_ok=True)
+pat = re.compile(r"^(.+)_(\d{4})\.jpg$")
+n = 0
+for p in src.rglob("*.jpg"):
+    m = pat.match(p.name)
+    if not m: continue
+    name = m.group(1)
+    out_dir = dst / name
+    out_dir.mkdir(exist_ok=True)
+    shutil.move(str(p), out_dir / p.name)
+    n += 1
+print(f"  [lfw] moved {n} images into {dst}")
+PY
+        rm -rf "$tmp_extract" "$LFW_HF_TGZ"
+
+    # Path B: UMass tarball pre-uploaded or downloadable.
     else
-        echo "[lfw] using pre-uploaded tarball at $LFW_TGZ"
-    fi
+        if [[ ! -s "$LFW_TGZ" ]]; then
+            fetched_url=""
+            for url in "${LFW_URLS[@]}"; do
+                for attempt in 1 2; do
+                    echo "[lfw] try $attempt: $url"
+                    if wget --tries=3 --timeout=120 --show-progress -O "$LFW_TGZ" "$url"; then
+                        if [[ -s "$LFW_TGZ" ]]; then fetched_url="$url"; break; fi
+                    fi
+                    echo "[lfw] failed; retrying..."
+                    sleep 3
+                done
+                [[ -n "$fetched_url" ]] && break
+            done
 
-    echo "[lfw] extracting..."
-    tar -xzf "$LFW_TGZ" -C "$CACHE_ROOT/lfw"
-    rm -f "$LFW_TGZ"
+            if [[ -z "$fetched_url" ]]; then
+                rm -f "$LFW_TGZ"
+                echo ""
+                echo "[lfw] ERROR: could not fetch LFW from any mirror."
+                echo "       Options:"
+                echo "         1. Force the CDAC proxy and retry:"
+                echo "              PARAM_USE_PROXY=1 bash hpc/stage_datasets.sh"
+                echo "         2. Upload the UMass tarball to:"
+                echo "              $LFW_TGZ"
+                echo "         3. Upload the HF mirror (marcelohaps/lfw) tarball to:"
+                echo "              $LFW_HF_TGZ"
+                echo "       Then re-run:  bash hpc/stage_datasets.sh"
+                exit 1
+            fi
+            echo "[lfw] downloaded from $fetched_url"
+        else
+            echo "[lfw] using pre-uploaded UMass tarball at $LFW_TGZ"
+        fi
+        echo "[lfw] extracting..."
+        tar -xzf "$LFW_TGZ" -C "$CACHE_ROOT/lfw"
+        rm -f "$LFW_TGZ"
+    fi
 fi
 
 n_imgs=$(find "$LFW_DIR" -name '*.jpg' 2>/dev/null | wc -l)
