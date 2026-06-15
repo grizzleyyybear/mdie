@@ -29,7 +29,7 @@ hpc/
 ├── slurm_quick.sh             4-epoch smoke run on 1 A100 (~30 min)
 ├── slurm_stage1.sh            Stage-1 baselines on 1 A100  (~3–4 h)
 ├── slurm_stage2.sh            Stage-2 MDIE + ablation on 1 A100 (~5–6 h)
-├── slurm_eval.sh              real-benchmark eval + Grad-CAM (<1 h)
+├── slurm_eval.sh              real-bench eval + bone-IoU + compat proof (<1.5 h)
 ├── slurm_full_pipeline.sh     all of the above end-to-end (~12 h)
 └── interactive.sh             srun helper for an A100 debug shell
 ```

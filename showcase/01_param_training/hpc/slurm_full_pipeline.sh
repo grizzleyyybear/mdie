@@ -11,14 +11,14 @@
 #    Phase 5: ArcFace-compatibility inference proof (single 512-d, cosine==dot)
 #    Phase 6: build the research paper PDF from paper/paper.tex (pdflatex)
 #
-#  Expected walltime: 9-12 h on 1 A100-SXM4 (well under 168 h cap).
+#  Expected walltime: 10-14 h on 1 A100-SXM4 (well under 168 h cap).
 #
 #  Submit:  sbatch hpc/slurm_full_pipeline.sh
 # ============================================================================
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=16
 #SBATCH --gres=gpu:A100-SXM4:1
-#SBATCH --time=12:00:00
+#SBATCH --time=16:00:00
 #SBATCH --job-name=mdie-full
 #SBATCH --error=job.%J.err
 #SBATCH --output=job.%J.out
@@ -28,7 +28,7 @@
 source "$(dirname "$0")/_prelude.sh"
 
 EPOCHS_S1="${EPOCHS_S1:-50}"
-EPOCHS_S2="${EPOCHS_S2:-30}"
+EPOCHS_S2="${EPOCHS_S2:-60}"
 BATCH="${BATCH:-256}"
 LR="${LR:-2e-3}"
 VAL_PAIRS="${VAL_PAIRS:-3000}"

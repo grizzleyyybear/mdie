@@ -208,9 +208,10 @@ If `job.<JOBID>.err` is empty and `job.<JOBID>.out` ends with
 
 ```bash
 sbatch hpc/slurm_full_pipeline.sh
-# ~9-12 h walltime, single A100. Produces:
-#   research_v2/results/{stage1,stage2,real_benchmarks}.{json,csv}
-#   research_v2/figures/{roc_*,methodology,mdie_explainer,mdie_research_paper}.pdf
+# ~10-14 h walltime, single A100. Produces:
+#   research_v2/results/{stage2_metrics,security_family_summary}.json
+#   research_v2/results/{real_benchmarks.{json,csv},inference_compat_proof.json}
+#   research_v2/figures/{roc_*,attention_bone_iou}.png + mdie_research_paper.pdf
 #   research_v2/checkpoints/*.pt
 ```
 

@@ -40,7 +40,7 @@ sbatch hpc/slurm_full_pipeline.sh
 | `hpc/slurm_quick.sh` | 4-epoch smoke test. Run this first. |
 | `hpc/slurm_stage1.sh` | Baseline failure quantification. |
 | `hpc/slurm_stage2.sh` | MDIE + ablation training. |
-| `hpc/slurm_eval.sh` | Public benchmark evaluation and Grad-CAM. |
+| `hpc/slurm_eval.sh` | Real-benchmark eval + bone-IoU interpretability + ArcFace-compat proof. |
 | `hpc/slurm_full_pipeline.sh` | Full publication pipeline. |
 | `hpc/interactive.sh` | A100 debug shell. |
 

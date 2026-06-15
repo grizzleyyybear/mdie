@@ -10,7 +10,7 @@ cosine match) — an **ArcFace drop-in** for edge devices. Three layers:
 |-------|--------|--------|
 | 1. Baselines + failure modes (controlled LFW) | `python -m src.run_stage1` | `figures/stage1_*`, `results/stage1_*` |
 | 2. Novel MDIE + ablation                       | `python -m src.run_stage2 --ablation` | `figures/stage2_*`, `results/stage2_*` |
-| 3. v3 real-benchmark eval + interpretability   | `python -m src.eval.run_real_benchmarks` <br> `python -m src.eval.gradcam` | `results/real_benchmarks.csv`, `figures/roc_*.pdf`, `figures/gradcam_grid.pdf`, `figures/cam_iou.pdf` |
+| 3. Real-benchmark eval + interpretability + deploy proof | `python -m src.eval.run_real_benchmarks` <br> `python scripts/attention_bone_iou.py` <br> `python scripts/inference_compat_proof.py` | `results/real_benchmarks.csv`, `figures/roc_*.png`, `figures/attention_bone_iou.png`, `results/inference_compat_proof.json` |
 
 ## Quick smoke-test
 ```cmd
@@ -28,7 +28,8 @@ or manually:
 python -m src.run_stage1 --epochs 50 --batch 32
 python -m src.run_stage2 --epochs 40 --batch 24 --ablation
 python -m src.eval.run_real_benchmarks
-python -m src.eval.gradcam
+python scripts/attention_bone_iou.py
+python scripts/inference_compat_proof.py
 ```
 
 ## Layout
@@ -45,7 +46,7 @@ research_v2/
 │   ├── novel/               MDIE — RATA (ablation) + AMD + ICCL trainer
 │   ├── train/               pretrain_backbone entry point
 │   ├── eval/                embeddings, ROC/EER/TAR@FAR, occlusion sensitivity,
-│   │                        run_real_benchmarks (v3), gradcam (v3)
+│   │                        run_real_benchmarks (real benchmarks), occlusion sensitivity
 │   └── paper/               publication figures + LaTeX tables + methodology docs
 ├── checkpoints/             best weights per model (+ drop-in instructions)
 ├── results/                 JSON + CSV + LaTeX tables
@@ -60,7 +61,7 @@ research_v2/
 auto-downloaded from HuggingFace `Icar/buffalo_l-torch`).
 
 ## Benchmarks registered
-`mfr2` (masks), `calfw` (cross-age), `agedb30` (aging),
+`mfr2` (masks), `meglass` (glasses), `calfw` (cross-age), `agedb30` (aging),
 `iiitd_surgery` (gated — set `IIITD_ROOT`), `ijbc_occ` (gated — set `IJBC_ROOT`).
 
 For real benchmarks the loader expects InsightFace `.bin` files dropped into
