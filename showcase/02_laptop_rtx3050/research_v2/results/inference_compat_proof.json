@@ -1,0 +1,19 @@
+{
+  "embedding_shape": [
+    8,
+    512
+  ],
+  "is_512d": true,
+  "unit_norm_max_err": 5.960464477539063e-08,
+  "is_unit_norm": true,
+  "verify_equals_encode_max_err": 0.0,
+  "single_forward_no_tta": true,
+  "cosine_equals_dot_max_err": 5.960464477539063e-08,
+  "cosine_is_dot": true,
+  "deterministic_max_err": 0.0,
+  "is_deterministic": true,
+  "cos_same_id_masked": 0.8760654926300049,
+  "cos_diff_id": 0.8241719603538513,
+  "masked_self_beats_imposter": true,
+  "ALL_PASS": true
+}

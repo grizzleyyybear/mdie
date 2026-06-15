@@ -1,0 +1,82 @@
+{
+  "run_name": "stage2",
+  "timestamp": "20260614_125933",
+  "git_sha": "0b64502",
+  "python": "3.11.9",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "torch": "2.12.0+cu126",
+  "cuda_available": true,
+  "cuda_device": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "argv": [
+    "C:\\Users\\kingm\\Downloads\\aicte\\showcase\\02_laptop_rtx3050\\research_v2\\src\\run_stage2.py",
+    "--quick",
+    "--epochs",
+    "8",
+    "--backbone-lr-mult",
+    "0.1",
+    "--attn-lambda",
+    "1.5",
+    "--batch",
+    "16",
+    "--workers",
+    "2",
+    "--channels-last",
+    "--val-pairs",
+    "200",
+    "--ablation"
+  ],
+  "settings": {
+    "train": {
+      "image_size": 112,
+      "batch_size": 32,
+      "epochs": 25,
+      "lr": 0.001,
+      "weight_decay": 0.0005,
+      "warmup_epochs": 2,
+      "grad_accum_steps": 2,
+      "embedding_dim": 512,
+      "arcface_margin": 0.5,
+      "arcface_scale": 64.0,
+      "cosface_margin": 0.35,
+      "triplet_margin": 0.3
+    },
+    "eval": {
+      "n_pos_pairs": 400,
+      "n_neg_pairs": 400,
+      "far_targets": [
+        0.1,
+        0.01,
+        0.001
+      ]
+    },
+    "novel": {
+      "use_region_prior": true,
+      "use_amd": true,
+      "use_iccl": true,
+      "amd_lambda": 0.1,
+      "iccl_lambda": 0.5,
+      "n_modification_classes": 9
+    }
+  },
+  "extra": {
+    "epochs": 8,
+    "batch": 16,
+    "lr": 0.001,
+    "workers": 2,
+    "grad_clip": 5.0,
+    "warmup_epochs": 1,
+    "channels_last": true,
+    "val_pairs": 200,
+    "balanced_sampler": false,
+    "classes_per_batch": 16,
+    "samples_per_class": 4,
+    "compile_model": false,
+    "resume": false,
+    "quick": true,
+    "ablation": true,
+    "pretrained_backbone": true,
+    "freeze_backbone": false,
+    "backbone_lr_mult": 0.1,
+    "attn_lambda": 1.5
+  }
+}

@@ -1,0 +1,38 @@
+% =================== Table 1: Overall verification ===================
+\begin{table}[t]
+\centering
+\caption{Overall verification performance on the LFW-modified benchmark suite. AUC: area under ROC; EER: equal error rate; TAR@FAR=$10^{-3}$: true-accept rate at false-accept rate $10^{-3}$.}
+\label{tab:overall}
+\begin{tabular}{lcccc}
+\hline
+Model & AUC $\uparrow$ & EER $\downarrow$ & TAR@$10^{-2}$ $\uparrow$ & TAR@$10^{-3}$ $\uparrow$ \\
+\hline
+facenet & 0.6297 & 0.4149 & 0.0425 & 0.0022 \\
+arcface & 0.6862 & 0.3462 & 0.0225 & 0.0131 \\
+cosface & 0.8097 & 0.2683 & 0.2258 & 0.0844 \\
+mobilefacenet & 0.7954 & 0.2853 & 0.2322 & 0.1186 \\
+\hline
+\end{tabular}
+\end{table}
+
+% =================== Table 2: Per-modification AUC ===================
+\begin{table*}[t]
+\centering
+\caption{Per-modification AUC. The proposed MDIE shows the smallest AUC drop across modification types.}
+\label{tab:permod}
+\begin{tabular}{lcccc}
+\hline
+Modification & facenet & arcface & cosface & mobilefacenet \\
+\hline
+adversarial & 0.6666 & 0.7230 & 0.8536 & 0.8447 \\
+aging & 0.6416 & 0.7056 & 0.8462 & 0.8386 \\
+clean & 0.6670 & 0.7292 & 0.8551 & 0.8535 \\
+disguise_glasses & 0.5706 & 0.6708 & 0.7740 & 0.7549 \\
+disguise_mask & 0.5857 & 0.6414 & 0.7149 & 0.7151 \\
+low_light & 0.6018 & 0.5963 & 0.7555 & 0.7721 \\
+occlusion_random & 0.6143 & 0.6722 & 0.7853 & 0.7144 \\
+surgery_jaw & 0.6668 & 0.7298 & 0.8545 & 0.8550 \\
+surgery_nose & 0.6651 & 0.7250 & 0.8540 & 0.8519 \\
+\hline
+\end{tabular}
+\end{table*}

@@ -1,0 +1,61 @@
+% =================== Table 1: Overall verification ===================
+\begin{table}[t]
+\centering
+\caption{Overall verification performance on the LFW-modified benchmark suite. AUC: area under ROC; EER: equal error rate; TAR@FAR=$10^{-3}$: true-accept rate at false-accept rate $10^{-3}$.}
+\label{tab:overall}
+\begin{tabular}{lcccc}
+\hline
+Model & AUC $\uparrow$ & EER $\downarrow$ & TAR@$10^{-2}$ $\uparrow$ & TAR@$10^{-3}$ $\uparrow$ \\
+\hline
+facenet & 0.6241 & 0.4179 & 0.0410 & 0.0022 \\
+arcface & 0.6744 & 0.3558 & 0.0220 & 0.0132 \\
+cosface & 0.7890 & 0.2849 & 0.2050 & 0.0730 \\
+mobilefacenet & 0.7791 & 0.2980 & 0.2097 & 0.1077 \\
+insightface_w600k_r50 & 0.9855 & 0.0522 & 0.8862 & 0.8057 \\
+MDIE-full & 0.9768 & 0.0723 & 0.7242 & 0.5220 \\
+MDIE-noRATA & 0.9774 & 0.0726 & 0.7990 & 0.4238 \\
+MDIE-noAMD & 0.9755 & 0.0789 & 0.6615 & 0.4798 \\
+MDIE-noICCL & 0.9737 & 0.0809 & 0.6993 & 0.3700 \\
+\hline
+\end{tabular}
+\end{table}
+
+% =================== Table 2: Per-modification AUC ===================
+\begin{table*}[t]
+\centering
+\caption{Per-modification AUC. The proposed MDIE shows the smallest AUC drop across modification types.}
+\label{tab:permod}
+\begin{tabular}{lccccccccc}
+\hline
+Modification & facenet & arcface & cosface & mobilefacenet & insightface_w600k_r50 & MDIE-full & MDIE-noRATA & MDIE-noAMD & MDIE-noICCL \\
+\hline
+adversarial & 0.6666 & 0.7230 & 0.8536 & 0.8447 & 0.9899 & 0.9804 & 0.9805 & 0.9808 & 0.9780 \\
+aging & 0.6416 & 0.7056 & 0.8462 & 0.8386 & 0.9853 & 0.9780 & 0.9779 & 0.9793 & 0.9767 \\
+clean & 0.6670 & 0.7292 & 0.8551 & 0.8535 & 0.9913 & 0.9816 & 0.9826 & 0.9814 & 0.9789 \\
+disguise_cap & 0.5746 & 0.5714 & 0.6273 & 0.6330 & 0.9833 & 0.9693 & 0.9701 & 0.9664 & 0.9678 \\
+disguise_glasses & 0.5706 & 0.6708 & 0.7740 & 0.7549 & 0.9879 & 0.9788 & 0.9817 & 0.9794 & 0.9771 \\
+disguise_mask & 0.5858 & 0.6414 & 0.7149 & 0.7151 & 0.9637 & 0.9647 & 0.9640 & 0.9556 & 0.9541 \\
+low_light & 0.6018 & 0.5963 & 0.7555 & 0.7721 & 0.9891 & 0.9792 & 0.9793 & 0.9768 & 0.9756 \\
+occlusion_random & 0.6143 & 0.6722 & 0.7853 & 0.7144 & 0.9877 & 0.9767 & 0.9781 & 0.9759 & 0.9730 \\
+surgery_jaw & 0.6668 & 0.7298 & 0.8545 & 0.8550 & 0.9873 & 0.9814 & 0.9813 & 0.9799 & 0.9784 \\
+surgery_nose & 0.6651 & 0.7250 & 0.8540 & 0.8519 & 0.9915 & 0.9805 & 0.9819 & 0.9812 & 0.9787 \\
+\hline
+\end{tabular}
+\end{table*}
+
+% =================== Table 3: Ablation ===================
+\begin{table}[t]
+\centering
+\caption{Ablation of MDIE components on the modified-LFW protocol.}
+\label{tab:ablation}
+\begin{tabular}{lcccc}
+\hline
+Variant & AUC $\uparrow$ & EER $\downarrow$ & TAR@$10^{-2}$ $\uparrow$ & TAR@$10^{-3}$ $\uparrow$ \\
+\hline
+MDIE-full & 0.9768 & 0.0723 & 0.7242 & 0.5220 \\
+MDIE-noRATA & 0.9774 & 0.0726 & 0.7990 & 0.4238 \\
+MDIE-noAMD & 0.9755 & 0.0789 & 0.6615 & 0.4798 \\
+MDIE-noICCL & 0.9737 & 0.0809 & 0.6993 & 0.3700 \\
+\hline
+\end{tabular}
+\end{table}

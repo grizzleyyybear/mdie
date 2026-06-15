@@ -29,6 +29,12 @@ research_v2/checkpoints/
 research_v2/runs/
 research_v2/wandb/
 research_v2/mlruns/
+showcase/**/research_v2/datasets_cache/
+showcase/**/research_v2/checkpoints/
+showcase/**/research_v2/logs/
+showcase/**/research_v2/runs/
+showcase/**/research_v2/wandb/
+showcase/**/research_v2/mlruns/
 *.pt
 *.pth
 *.ckpt

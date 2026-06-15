@@ -1,0 +1,35 @@
+% =================== Table 1: Overall verification ===================
+\begin{table}[t]
+\centering
+\caption{Overall verification performance on the LFW-modified benchmark suite. AUC: area under ROC; EER: equal error rate; TAR@FAR=$10^{-3}$: true-accept rate at false-accept rate $10^{-3}$.}
+\label{tab:overall}
+\begin{tabular}{lcccc}
+\hline
+Model & AUC $\uparrow$ & EER $\downarrow$ & TAR@$10^{-2}$ $\uparrow$ & TAR@$10^{-3}$ $\uparrow$ \\
+\hline
+arcface & 0.8171 & 0.2557 & 0.2325 & 0.0653 \\
+\hline
+\end{tabular}
+\end{table}
+
+% =================== Table 2: Per-modification AUC ===================
+\begin{table*}[t]
+\centering
+\caption{Per-modification AUC. The proposed MDIE shows the smallest AUC drop across modification types.}
+\label{tab:permod}
+\begin{tabular}{lc}
+\hline
+Modification & arcface \\
+\hline
+adversarial & 0.8640 \\
+aging & 0.8469 \\
+clean & 0.8642 \\
+disguise_glasses & 0.8076 \\
+disguise_mask & 0.7296 \\
+low_light & 0.7458 \\
+occlusion_random & 0.8037 \\
+surgery_jaw & 0.8657 \\
+surgery_nose & 0.8642 \\
+\hline
+\end{tabular}
+\end{table*}

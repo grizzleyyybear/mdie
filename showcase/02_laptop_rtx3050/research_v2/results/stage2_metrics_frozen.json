@@ -1,0 +1,1010 @@
+{
+  "facenet": {
+    "clean": {
+      "auc": 0.6669625,
+      "eer": 0.39375000000000004,
+      "eer_threshold": 0.4661105275154114,
+      "tar_at_far=0.1": 0.295,
+      "tar_at_far=0.01": 0.0475,
+      "tar_at_far=0.001": 0.0,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_nose": {
+      "auc": 0.66508125,
+      "eer": 0.38875,
+      "eer_threshold": 0.47204452753067017,
+      "tar_at_far=0.1": 0.2975,
+      "tar_at_far=0.01": 0.05,
+      "tar_at_far=0.001": 0.0,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_jaw": {
+      "auc": 0.66681875,
+      "eer": 0.39,
+      "eer_threshold": 0.4714440703392029,
+      "tar_at_far=0.1": 0.3075,
+      "tar_at_far=0.01": 0.05,
+      "tar_at_far=0.001": 0.0025,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_glasses": {
+      "auc": 0.57059375,
+      "eer": 0.44875,
+      "eer_threshold": 0.21148711442947388,
+      "tar_at_far=0.1": 0.1525,
+      "tar_at_far=0.01": 0.0175,
+      "tar_at_far=0.001": 0.005,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_mask": {
+      "auc": 0.58576875,
+      "eer": 0.4525,
+      "eer_threshold": 0.19915886223316193,
+      "tar_at_far=0.1": 0.18,
+      "tar_at_far=0.01": 0.03,
+      "tar_at_far=0.001": 0.0175,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "occlusion_random": {
+      "auc": 0.6143125,
+      "eer": 0.43375,
+      "eer_threshold": 0.453423410654068,
+      "tar_at_far=0.1": 0.1975,
+      "tar_at_far=0.01": 0.0275,
+      "tar_at_far=0.001": 0.005,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "aging": {
+      "auc": 0.641575,
+      "eer": 0.41000000000000003,
+      "eer_threshold": 0.49514058232307434,
+      "tar_at_far=0.1": 0.2925,
+      "tar_at_far=0.01": 0.01,
+      "tar_at_far=0.001": 0.0075,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "low_light": {
+      "auc": 0.6017875,
+      "eer": 0.44,
+      "eer_threshold": 0.349759042263031,
+      "tar_at_far=0.1": 0.2025,
+      "tar_at_far=0.01": 0.01,
+      "tar_at_far=0.001": 0.01,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "adversarial": {
+      "auc": 0.66658125,
+      "eer": 0.39,
+      "eer_threshold": 0.4509257674217224,
+      "tar_at_far=0.1": 0.265,
+      "tar_at_far=0.01": 0.06,
+      "tar_at_far=0.001": 0.005,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "pooled": {
+      "auc": 0.6297459104938272,
+      "eer": 0.41500000000000004,
+      "eer_threshold": 0.39968782663345337,
+      "tar_at_far=0.1": 0.2452777777777778,
+      "tar_at_far=0.01": 0.0425,
+      "tar_at_far=0.001": 0.0022222222222222222,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  },
+  "arcface": {
+    "clean": {
+      "auc": 0.7292000000000001,
+      "eer": 0.30125,
+      "eer_threshold": 0.34980636835098267,
+      "tar_at_far=0.1": 0.4275,
+      "tar_at_far=0.01": 0.0225,
+      "tar_at_far=0.001": 0.015,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_nose": {
+      "auc": 0.72503125,
+      "eer": 0.30875,
+      "eer_threshold": 0.3398403525352478,
+      "tar_at_far=0.1": 0.4425,
+      "tar_at_far=0.01": 0.025,
+      "tar_at_far=0.001": 0.015,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_jaw": {
+      "auc": 0.7297562499999999,
+      "eer": 0.315,
+      "eer_threshold": 0.34633755683898926,
+      "tar_at_far=0.1": 0.4225,
+      "tar_at_far=0.01": 0.0225,
+      "tar_at_far=0.001": 0.015,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_glasses": {
+      "auc": 0.6708000000000001,
+      "eer": 0.35750000000000004,
+      "eer_threshold": 0.2766145169734955,
+      "tar_at_far=0.1": 0.295,
+      "tar_at_far=0.01": 0.0275,
+      "tar_at_far=0.001": 0.0125,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_mask": {
+      "auc": 0.6414187499999999,
+      "eer": 0.37250000000000005,
+      "eer_threshold": 0.32758861780166626,
+      "tar_at_far=0.1": 0.1775,
+      "tar_at_far=0.01": 0.02,
+      "tar_at_far=0.001": 0.0125,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "occlusion_random": {
+      "auc": 0.6722312500000001,
+      "eer": 0.37124999999999997,
+      "eer_threshold": 0.3074938952922821,
+      "tar_at_far=0.1": 0.3125,
+      "tar_at_far=0.01": 0.015,
+      "tar_at_far=0.001": 0.01,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "aging": {
+      "auc": 0.7055625000000001,
+      "eer": 0.3325,
+      "eer_threshold": 0.39108774065971375,
+      "tar_at_far=0.1": 0.41,
+      "tar_at_far=0.01": 0.0175,
+      "tar_at_far=0.001": 0.015,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "low_light": {
+      "auc": 0.59629375,
+      "eer": 0.4275,
+      "eer_threshold": 0.4360232651233673,
+      "tar_at_far=0.1": 0.2325,
+      "tar_at_far=0.01": 0.0225,
+      "tar_at_far=0.001": 0.015,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "adversarial": {
+      "auc": 0.7229875,
+      "eer": 0.3125,
+      "eer_threshold": 0.3445233106613159,
+      "tar_at_far=0.1": 0.4175,
+      "tar_at_far=0.01": 0.0175,
+      "tar_at_far=0.001": 0.015,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "pooled": {
+      "auc": 0.6862146604938272,
+      "eer": 0.34624999999999995,
+      "eer_threshold": 0.3442612886428833,
+      "tar_at_far=0.1": 0.3408333333333333,
+      "tar_at_far=0.01": 0.0225,
+      "tar_at_far=0.001": 0.013055555555555556,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  },
+  "cosface": {
+    "clean": {
+      "auc": 0.8550687499999998,
+      "eer": 0.22499999999999998,
+      "eer_threshold": 0.15849795937538147,
+      "tar_at_far=0.1": 0.615,
+      "tar_at_far=0.01": 0.305,
+      "tar_at_far=0.001": 0.12,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_nose": {
+      "auc": 0.8540375,
+      "eer": 0.22875,
+      "eer_threshold": 0.16021093726158142,
+      "tar_at_far=0.1": 0.62,
+      "tar_at_far=0.01": 0.325,
+      "tar_at_far=0.001": 0.115,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_jaw": {
+      "auc": 0.854475,
+      "eer": 0.22000000000000003,
+      "eer_threshold": 0.154120534658432,
+      "tar_at_far=0.1": 0.6025,
+      "tar_at_far=0.01": 0.2825,
+      "tar_at_far=0.001": 0.1575,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_glasses": {
+      "auc": 0.77399375,
+      "eer": 0.29500000000000004,
+      "eer_threshold": 0.0841343104839325,
+      "tar_at_far=0.1": 0.36,
+      "tar_at_far=0.01": 0.1175,
+      "tar_at_far=0.001": 0.0325,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_mask": {
+      "auc": 0.7149375,
+      "eer": 0.34625,
+      "eer_threshold": 0.0947234183549881,
+      "tar_at_far=0.1": 0.315,
+      "tar_at_far=0.01": 0.065,
+      "tar_at_far=0.001": 0.01,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "occlusion_random": {
+      "auc": 0.78531875,
+      "eer": 0.29000000000000004,
+      "eer_threshold": 0.10124848783016205,
+      "tar_at_far=0.1": 0.4975,
+      "tar_at_far=0.01": 0.1525,
+      "tar_at_far=0.001": 0.065,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "aging": {
+      "auc": 0.84625,
+      "eer": 0.24375,
+      "eer_threshold": 0.14802582561969757,
+      "tar_at_far=0.1": 0.605,
+      "tar_at_far=0.01": 0.2625,
+      "tar_at_far=0.001": 0.065,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "low_light": {
+      "auc": 0.7555,
+      "eer": 0.31875,
+      "eer_threshold": 0.08847400546073914,
+      "tar_at_far=0.1": 0.44,
+      "tar_at_far=0.01": 0.1025,
+      "tar_at_far=0.001": 0.05,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "adversarial": {
+      "auc": 0.8536125000000001,
+      "eer": 0.22750000000000004,
+      "eer_threshold": 0.15669482946395874,
+      "tar_at_far=0.1": 0.61,
+      "tar_at_far=0.01": 0.315,
+      "tar_at_far=0.001": 0.125,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "pooled": {
+      "auc": 0.8096918209876544,
+      "eer": 0.2683333333333333,
+      "eer_threshold": 0.12394143640995026,
+      "tar_at_far=0.1": 0.5166666666666667,
+      "tar_at_far=0.01": 0.22583333333333333,
+      "tar_at_far=0.001": 0.08444444444444445,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  },
+  "mobilefacenet": {
+    "clean": {
+      "auc": 0.85345625,
+      "eer": 0.24125,
+      "eer_threshold": 0.16742786765098572,
+      "tar_at_far=0.1": 0.6225,
+      "tar_at_far=0.01": 0.34,
+      "tar_at_far=0.001": 0.195,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_nose": {
+      "auc": 0.8519375,
+      "eer": 0.235,
+      "eer_threshold": 0.1728934347629547,
+      "tar_at_far=0.1": 0.625,
+      "tar_at_far=0.01": 0.34,
+      "tar_at_far=0.001": 0.1875,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_jaw": {
+      "auc": 0.8550062500000001,
+      "eer": 0.23250000000000004,
+      "eer_threshold": 0.15854597091674805,
+      "tar_at_far=0.1": 0.6325,
+      "tar_at_far=0.01": 0.3375,
+      "tar_at_far=0.001": 0.21,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_glasses": {
+      "auc": 0.75490625,
+      "eer": 0.3175,
+      "eer_threshold": 0.05982716381549835,
+      "tar_at_far=0.1": 0.4225,
+      "tar_at_far=0.01": 0.15,
+      "tar_at_far=0.001": 0.0625,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_mask": {
+      "auc": 0.7150875000000001,
+      "eer": 0.3425,
+      "eer_threshold": 0.06832137703895569,
+      "tar_at_far=0.1": 0.3075,
+      "tar_at_far=0.01": 0.0425,
+      "tar_at_far=0.001": 0.03,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "occlusion_random": {
+      "auc": 0.7143999999999999,
+      "eer": 0.33625,
+      "eer_threshold": 0.08561904728412628,
+      "tar_at_far=0.1": 0.39,
+      "tar_at_far=0.01": 0.1375,
+      "tar_at_far=0.001": 0.0825,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "aging": {
+      "auc": 0.83859375,
+      "eer": 0.23375,
+      "eer_threshold": 0.17976313829421997,
+      "tar_at_far=0.1": 0.595,
+      "tar_at_far=0.01": 0.2975,
+      "tar_at_far=0.001": 0.125,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "low_light": {
+      "auc": 0.7721062500000001,
+      "eer": 0.31125,
+      "eer_threshold": 0.13775449991226196,
+      "tar_at_far=0.1": 0.4725,
+      "tar_at_far=0.01": 0.1325,
+      "tar_at_far=0.001": 0.0775,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "adversarial": {
+      "auc": 0.8446875,
+      "eer": 0.24375,
+      "eer_threshold": 0.1662794053554535,
+      "tar_at_far=0.1": 0.64,
+      "tar_at_far=0.01": 0.335,
+      "tar_at_far=0.001": 0.175,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "pooled": {
+      "auc": 0.7953748456790124,
+      "eer": 0.28527777777777774,
+      "eer_threshold": 0.1267886459827423,
+      "tar_at_far=0.1": 0.5075,
+      "tar_at_far=0.01": 0.23222222222222222,
+      "tar_at_far=0.001": 0.11861111111111111,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  },
+  "insightface_w600k_r50": {
+    "clean": {
+      "auc": 0.99125,
+      "eer": 0.04374999999999999,
+      "eer_threshold": 0.14718833565711975,
+      "tar_at_far=0.1": 0.975,
+      "tar_at_far=0.01": 0.9075,
+      "tar_at_far=0.001": 0.8725,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_nose": {
+      "auc": 0.9915375000000001,
+      "eer": 0.03750000000000002,
+      "eer_threshold": 0.1454499363899231,
+      "tar_at_far=0.1": 0.9725,
+      "tar_at_far=0.01": 0.915,
+      "tar_at_far=0.001": 0.875,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_jaw": {
+      "auc": 0.98730625,
+      "eer": 0.041249999999999995,
+      "eer_threshold": 0.14385075867176056,
+      "tar_at_far=0.1": 0.9725,
+      "tar_at_far=0.01": 0.895,
+      "tar_at_far=0.001": 0.8425,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_glasses": {
+      "auc": 0.9879125000000001,
+      "eer": 0.05000000000000002,
+      "eer_threshold": 0.1343306452035904,
+      "tar_at_far=0.1": 0.97,
+      "tar_at_far=0.01": 0.9,
+      "tar_at_far=0.001": 0.8225,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_mask": {
+      "auc": 0.9636750000000001,
+      "eer": 0.08625000000000002,
+      "eer_threshold": 0.12253975868225098,
+      "tar_at_far=0.1": 0.915,
+      "tar_at_far=0.01": 0.795,
+      "tar_at_far=0.001": 0.58,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "occlusion_random": {
+      "auc": 0.9876812500000001,
+      "eer": 0.048749999999999995,
+      "eer_threshold": 0.1435568928718567,
+      "tar_at_far=0.1": 0.9625,
+      "tar_at_far=0.01": 0.875,
+      "tar_at_far=0.001": 0.8425,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "aging": {
+      "auc": 0.9853312500000001,
+      "eer": 0.058750000000000024,
+      "eer_threshold": 0.14714938402175903,
+      "tar_at_far=0.1": 0.9625,
+      "tar_at_far=0.01": 0.895,
+      "tar_at_far=0.001": 0.7975,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "low_light": {
+      "auc": 0.9890687499999999,
+      "eer": 0.057499999999999996,
+      "eer_threshold": 0.14258645474910736,
+      "tar_at_far=0.1": 0.965,
+      "tar_at_far=0.01": 0.895,
+      "tar_at_far=0.001": 0.8375,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "adversarial": {
+      "auc": 0.9899249999999999,
+      "eer": 0.043750000000000025,
+      "eer_threshold": 0.14854785799980164,
+      "tar_at_far=0.1": 0.97,
+      "tar_at_far=0.01": 0.9025,
+      "tar_at_far=0.001": 0.85,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "pooled": {
+      "auc": 0.9857901234567902,
+      "eer": 0.05194444444444445,
+      "eer_threshold": 0.14085586369037628,
+      "tar_at_far=0.1": 0.9622222222222222,
+      "tar_at_far=0.01": 0.8877777777777778,
+      "tar_at_far=0.001": 0.8086111111111111,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  },
+  "MDIE-full": {
+    "clean": {
+      "auc": 0.8720625000000001,
+      "eer": 0.20750000000000002,
+      "eer_threshold": 0.17459818720817566,
+      "tar_at_far=0.1": 0.6625,
+      "tar_at_far=0.01": 0.335,
+      "tar_at_far=0.001": 0.215,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_nose": {
+      "auc": 0.869475,
+      "eer": 0.20750000000000002,
+      "eer_threshold": 0.17354479432106018,
+      "tar_at_far=0.1": 0.675,
+      "tar_at_far=0.01": 0.3575,
+      "tar_at_far=0.001": 0.2025,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_jaw": {
+      "auc": 0.8551500000000001,
+      "eer": 0.22999999999999998,
+      "eer_threshold": 0.16006790101528168,
+      "tar_at_far=0.1": 0.6175,
+      "tar_at_far=0.01": 0.33,
+      "tar_at_far=0.001": 0.17,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_glasses": {
+      "auc": 0.85526875,
+      "eer": 0.22625,
+      "eer_threshold": 0.1519978642463684,
+      "tar_at_far=0.1": 0.6225,
+      "tar_at_far=0.01": 0.285,
+      "tar_at_far=0.001": 0.1475,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_mask": {
+      "auc": 0.7811812499999999,
+      "eer": 0.28625,
+      "eer_threshold": 0.13603805005550385,
+      "tar_at_far=0.1": 0.45,
+      "tar_at_far=0.01": 0.22,
+      "tar_at_far=0.001": 0.1475,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "occlusion_random": {
+      "auc": 0.8554437500000001,
+      "eer": 0.22375,
+      "eer_threshold": 0.16366545855998993,
+      "tar_at_far=0.1": 0.6025,
+      "tar_at_far=0.01": 0.3225,
+      "tar_at_far=0.001": 0.15,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "aging": {
+      "auc": 0.8375062500000001,
+      "eer": 0.24,
+      "eer_threshold": 0.15125325322151184,
+      "tar_at_far=0.1": 0.565,
+      "tar_at_far=0.01": 0.2925,
+      "tar_at_far=0.001": 0.15,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "low_light": {
+      "auc": 0.842725,
+      "eer": 0.22875,
+      "eer_threshold": 0.13874773681163788,
+      "tar_at_far=0.1": 0.6025,
+      "tar_at_far=0.01": 0.215,
+      "tar_at_far=0.001": 0.0825,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "adversarial": {
+      "auc": 0.8711125,
+      "eer": 0.21250000000000002,
+      "eer_threshold": 0.15081779658794403,
+      "tar_at_far=0.1": 0.67,
+      "tar_at_far=0.01": 0.2575,
+      "tar_at_far=0.001": 0.19,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "pooled": {
+      "auc": 0.848842862654321,
+      "eer": 0.23125,
+      "eer_threshold": 0.15491147339344025,
+      "tar_at_far=0.1": 0.6138888888888889,
+      "tar_at_far=0.01": 0.3016666666666667,
+      "tar_at_far=0.001": 0.1436111111111111,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  },
+  "MDIE-noRATA": {
+    "clean": {
+      "auc": 0.8314875,
+      "eer": 0.24375000000000002,
+      "eer_threshold": 0.06171644479036331,
+      "tar_at_far=0.1": 0.5975,
+      "tar_at_far=0.01": 0.3075,
+      "tar_at_far=0.001": 0.205,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_nose": {
+      "auc": 0.8365125,
+      "eer": 0.24375,
+      "eer_threshold": 0.06074018031358719,
+      "tar_at_far=0.1": 0.6075,
+      "tar_at_far=0.01": 0.3025,
+      "tar_at_far=0.001": 0.15,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_jaw": {
+      "auc": 0.80361875,
+      "eer": 0.2825,
+      "eer_threshold": 0.04911113530397415,
+      "tar_at_far=0.1": 0.555,
+      "tar_at_far=0.01": 0.255,
+      "tar_at_far=0.001": 0.175,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_glasses": {
+      "auc": 0.827575,
+      "eer": 0.25875000000000004,
+      "eer_threshold": 0.05278277024626732,
+      "tar_at_far=0.1": 0.58,
+      "tar_at_far=0.01": 0.2225,
+      "tar_at_far=0.001": 0.0825,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_mask": {
+      "auc": 0.70231875,
+      "eer": 0.355,
+      "eer_threshold": 0.010111236944794655,
+      "tar_at_far=0.1": 0.3225,
+      "tar_at_far=0.01": 0.0875,
+      "tar_at_far=0.001": 0.0225,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "occlusion_random": {
+      "auc": 0.81193125,
+      "eer": 0.26125,
+      "eer_threshold": 0.054675184190273285,
+      "tar_at_far=0.1": 0.5225,
+      "tar_at_far=0.01": 0.2425,
+      "tar_at_far=0.001": 0.1,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "aging": {
+      "auc": 0.8136999999999999,
+      "eer": 0.265,
+      "eer_threshold": 0.05803173780441284,
+      "tar_at_far=0.1": 0.5575,
+      "tar_at_far=0.01": 0.2375,
+      "tar_at_far=0.001": 0.0575,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "low_light": {
+      "auc": 0.81918125,
+      "eer": 0.255,
+      "eer_threshold": 0.049388665705919266,
+      "tar_at_far=0.1": 0.55,
+      "tar_at_far=0.01": 0.35,
+      "tar_at_far=0.001": 0.1775,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "adversarial": {
+      "auc": 0.82744375,
+      "eer": 0.25625,
+      "eer_threshold": 0.056644558906555176,
+      "tar_at_far=0.1": 0.585,
+      "tar_at_far=0.01": 0.345,
+      "tar_at_far=0.001": 0.1875,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "pooled": {
+      "auc": 0.8070611111111111,
+      "eer": 0.2729166666666667,
+      "eer_threshold": 0.048806607723236084,
+      "tar_at_far=0.1": 0.5402777777777777,
+      "tar_at_far=0.01": 0.26805555555555555,
+      "tar_at_far=0.001": 0.1063888888888889,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  },
+  "MDIE-noAMD": {
+    "clean": {
+      "auc": 0.8772250000000001,
+      "eer": 0.22000000000000003,
+      "eer_threshold": 0.1485951691865921,
+      "tar_at_far=0.1": 0.69,
+      "tar_at_far=0.01": 0.4275,
+      "tar_at_far=0.001": 0.235,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_nose": {
+      "auc": 0.8737312500000001,
+      "eer": 0.20875,
+      "eer_threshold": 0.1521826982498169,
+      "tar_at_far=0.1": 0.65,
+      "tar_at_far=0.01": 0.375,
+      "tar_at_far=0.001": 0.2525,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_jaw": {
+      "auc": 0.8610312500000001,
+      "eer": 0.21250000000000002,
+      "eer_threshold": 0.14151497185230255,
+      "tar_at_far=0.1": 0.6125,
+      "tar_at_far=0.01": 0.41,
+      "tar_at_far=0.001": 0.1225,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_glasses": {
+      "auc": 0.86449375,
+      "eer": 0.22250000000000003,
+      "eer_threshold": 0.13210363686084747,
+      "tar_at_far=0.1": 0.6525,
+      "tar_at_far=0.01": 0.31,
+      "tar_at_far=0.001": 0.1125,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_mask": {
+      "auc": 0.79393125,
+      "eer": 0.27,
+      "eer_threshold": 0.11098264902830124,
+      "tar_at_far=0.1": 0.49,
+      "tar_at_far=0.01": 0.145,
+      "tar_at_far=0.001": 0.0875,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "occlusion_random": {
+      "auc": 0.85916875,
+      "eer": 0.21750000000000003,
+      "eer_threshold": 0.13609349727630615,
+      "tar_at_far=0.1": 0.6375,
+      "tar_at_far=0.01": 0.36,
+      "tar_at_far=0.001": 0.2075,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "aging": {
+      "auc": 0.8406312499999999,
+      "eer": 0.22875,
+      "eer_threshold": 0.14126595854759216,
+      "tar_at_far=0.1": 0.58,
+      "tar_at_far=0.01": 0.315,
+      "tar_at_far=0.001": 0.1025,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "low_light": {
+      "auc": 0.846425,
+      "eer": 0.23125,
+      "eer_threshold": 0.12930722534656525,
+      "tar_at_far=0.1": 0.65,
+      "tar_at_far=0.01": 0.24,
+      "tar_at_far=0.001": 0.07,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "adversarial": {
+      "auc": 0.8617874999999999,
+      "eer": 0.22499999999999998,
+      "eer_threshold": 0.1446041464805603,
+      "tar_at_far=0.1": 0.66,
+      "tar_at_far=0.01": 0.3775,
+      "tar_at_far=0.001": 0.1825,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "pooled": {
+      "auc": 0.8527862654320988,
+      "eer": 0.23069444444444442,
+      "eer_threshold": 0.13636189699172974,
+      "tar_at_far=0.1": 0.6286111111111111,
+      "tar_at_far=0.01": 0.3325,
+      "tar_at_far=0.001": 0.11555555555555555,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  },
+  "MDIE-noICCL": {
+    "clean": {
+      "auc": 0.86828125,
+      "eer": 0.21875,
+      "eer_threshold": 0.13928523659706116,
+      "tar_at_far=0.1": 0.67,
+      "tar_at_far=0.01": 0.395,
+      "tar_at_far=0.001": 0.1825,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_nose": {
+      "auc": 0.86875625,
+      "eer": 0.21875,
+      "eer_threshold": 0.1426980346441269,
+      "tar_at_far=0.1": 0.6625,
+      "tar_at_far=0.01": 0.4175,
+      "tar_at_far=0.001": 0.23,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "surgery_jaw": {
+      "auc": 0.8563187499999999,
+      "eer": 0.22875,
+      "eer_threshold": 0.130202978849411,
+      "tar_at_far=0.1": 0.635,
+      "tar_at_far=0.01": 0.3625,
+      "tar_at_far=0.001": 0.1475,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_glasses": {
+      "auc": 0.85373125,
+      "eer": 0.21750000000000003,
+      "eer_threshold": 0.12221424281597137,
+      "tar_at_far=0.1": 0.615,
+      "tar_at_far=0.01": 0.35,
+      "tar_at_far=0.001": 0.1425,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "disguise_mask": {
+      "auc": 0.7990999999999999,
+      "eer": 0.28125,
+      "eer_threshold": 0.10061348974704742,
+      "tar_at_far=0.1": 0.475,
+      "tar_at_far=0.01": 0.145,
+      "tar_at_far=0.001": 0.1175,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "occlusion_random": {
+      "auc": 0.8505937499999999,
+      "eer": 0.22375,
+      "eer_threshold": 0.13656607270240784,
+      "tar_at_far=0.1": 0.5925,
+      "tar_at_far=0.01": 0.3575,
+      "tar_at_far=0.001": 0.25,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "aging": {
+      "auc": 0.83908125,
+      "eer": 0.25125,
+      "eer_threshold": 0.12582670152187347,
+      "tar_at_far=0.1": 0.6025,
+      "tar_at_far=0.01": 0.2575,
+      "tar_at_far=0.001": 0.095,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "low_light": {
+      "auc": 0.84534375,
+      "eer": 0.24000000000000002,
+      "eer_threshold": 0.11264287680387497,
+      "tar_at_far=0.1": 0.6,
+      "tar_at_far=0.01": 0.2,
+      "tar_at_far=0.001": 0.085,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "adversarial": {
+      "auc": 0.8682187500000002,
+      "eer": 0.21875,
+      "eer_threshold": 0.12946456670761108,
+      "tar_at_far=0.1": 0.6475,
+      "tar_at_far=0.01": 0.36,
+      "tar_at_far=0.001": 0.1525,
+      "n_pairs": 800,
+      "n_pos": 400,
+      "n_neg": 400
+    },
+    "pooled": {
+      "auc": 0.8494885802469134,
+      "eer": 0.23124999999999998,
+      "eer_threshold": 0.12547077238559723,
+      "tar_at_far=0.1": 0.6111111111111112,
+      "tar_at_far=0.01": 0.3375,
+      "tar_at_far=0.001": 0.13,
+      "n_pairs": 7200,
+      "n_pos": 3600,
+      "n_neg": 3600
+    }
+  }
+}

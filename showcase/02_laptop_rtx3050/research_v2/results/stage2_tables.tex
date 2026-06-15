@@ -1,0 +1,55 @@
+% =================== Table 1: Overall verification ===================
+\begin{table}[t]
+\centering
+\caption{Overall verification performance on the LFW-modified benchmark suite. AUC: area under ROC; EER: equal error rate; TAR@FAR=$10^{-3}$: true-accept rate at false-accept rate $10^{-3}$.}
+\label{tab:overall}
+\begin{tabular}{lcccc}
+\hline
+Model & AUC $\uparrow$ & EER $\downarrow$ & TAR@$10^{-2}$ $\uparrow$ & TAR@$10^{-3}$ $\uparrow$ \\
+\hline
+facenet & 0.6029 & 0.4323 & 0.0355 & 0.0070 \\
+arcface & 0.6445 & 0.3764 & 0.0185 & 0.0083 \\
+cosface & 0.7607 & 0.3075 & 0.1505 & 0.0390 \\
+mobilefacenet & 0.7530 & 0.3137 & 0.1680 & 0.0705 \\
+insightface_w600k_r50 & 0.9837 & 0.0570 & 0.8772 & 0.7950 \\
+MDIE-full & 0.9776 & 0.0746 & 0.6780 & 0.3705 \\
+\hline
+\end{tabular}
+\end{table}
+
+% =================== Table 2: Per-modification AUC ===================
+\begin{table*}[t]
+\centering
+\caption{Per-modification AUC. The proposed MDIE shows the smallest AUC drop across modification types.}
+\label{tab:permod}
+\begin{tabular}{lcccccc}
+\hline
+Modification & facenet & arcface & cosface & mobilefacenet & insightface_w600k_r50 & MDIE-full \\
+\hline
+adversarial & 0.6666 & 0.7230 & 0.8536 & 0.8447 & 0.9899 & 0.9827 \\
+aging & 0.6415 & 0.7056 & 0.8462 & 0.8386 & 0.9853 & 0.9814 \\
+clean & 0.6670 & 0.7292 & 0.8551 & 0.8535 & 0.9913 & 0.9845 \\
+disguise_cap & 0.5746 & 0.5714 & 0.6273 & 0.6330 & 0.9833 & 0.9656 \\
+disguise_glasses & 0.5396 & 0.6614 & 0.7768 & 0.6880 & 0.9860 & 0.9806 \\
+disguise_mask & 0.5857 & 0.6414 & 0.7149 & 0.7151 & 0.9637 & 0.9625 \\
+harsh_shadow & 0.6189 & 0.5548 & 0.7399 & 0.7837 & 0.9826 & 0.9806 \\
+low_light & 0.5861 & 0.5895 & 0.7407 & 0.7570 & 0.9891 & 0.9797 \\
+occlusion_random & 0.6143 & 0.6722 & 0.7853 & 0.7144 & 0.9877 & 0.9800 \\
+over_exposure & 0.5545 & 0.6316 & 0.6944 & 0.7555 & 0.9800 & 0.9785 \\
+\hline
+\end{tabular}
+\end{table*}
+
+% =================== Table 3: Ablation ===================
+\begin{table}[t]
+\centering
+\caption{Ablation of MDIE components on the modified-LFW protocol.}
+\label{tab:ablation}
+\begin{tabular}{lcccc}
+\hline
+Variant & AUC $\uparrow$ & EER $\downarrow$ & TAR@$10^{-2}$ $\uparrow$ & TAR@$10^{-3}$ $\uparrow$ \\
+\hline
+MDIE-full & 0.9776 & 0.0746 & 0.6780 & 0.3705 \\
+\hline
+\end{tabular}
+\end{table}

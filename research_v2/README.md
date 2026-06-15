@@ -1,6 +1,10 @@
-# research_v2 — Modification-Invariant Face Recognition
+# research_v2 — Occlusion+Lighting-Robust Face Recognition (ArcFace-compatible)
 
-Publishable research codebase. Three layers:
+Publishable research codebase. Niche: **security / access-control face
+verification under worn occlusions (mask, cap/hat, glasses, partial occluder)
+and adverse lighting (low-light, over-exposure, harsh shadow)**. The deployed
+embedding is a **single L2-normalised 512-d vector** (one forward pass, plain
+cosine match) — an **ArcFace drop-in** for edge devices. Three layers:
 
 | Layer | Script | Output |
 |-------|--------|--------|
