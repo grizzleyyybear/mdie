@@ -53,7 +53,12 @@ CPB="${CPB:-32}"
 SPC="${SPC:-8}"
 PRETRAINED="${PRETRAINED:-1}"
 
-echo "[fanout] task $IDX -> variant $VARIANT  (dataset=$DATASET backbone=$BACKBONE)"
+# Realistic occlusion augmentation (mask/glasses/cap/structured occluder). ON by
+# default for CASIA-scale training; set REALISTIC_AUG=0 to reproduce the flat
+# synthetic baseline exactly.
+export MDIE_REALISTIC_AUG="${REALISTIC_AUG:-1}"
+
+echo "[fanout] task $IDX -> variant $VARIANT  (dataset=$DATASET backbone=$BACKBONE realistic_aug=$MDIE_REALISTIC_AUG)"
 echo "[fanout] outputs -> $MDIE_RESULTS_DIR"
 
 PRETRAINED_FLAG="--pretrained-backbone"

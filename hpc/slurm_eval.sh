@@ -27,6 +27,17 @@ fi
 
 BENCHMARKS="${BENCHMARKS:-mfr2 meglass calfw agedb30}"
 
+# Auto-include staged niche occlusion/lighting benchmarks if their data is
+# present under datasets_cache (or RMFRD_ROOT/ARFACE_ROOT/YALEB_ROOT are set).
+_DC="$REPO_ROOT/research_v2/datasets_cache/benchmarks"
+if [[ -n "${RMFRD_ROOT:-}" || -d "$_DC/rmfrd/AFDB_masked_face_dataset" || -d "$_DC/rmfrd" && -n "$(find "$_DC/rmfrd" -maxdepth 2 -iname '*.jpg' -print -quit 2>/dev/null)" ]]; then
+    export RMFRD_ROOT="${RMFRD_ROOT:-$_DC/rmfrd}"
+    BENCHMARKS="$BENCHMARKS rmfrd"
+    echo "[eval] including RMFRD (real masked faces) from $RMFRD_ROOT"
+fi
+if [[ -n "${ARFACE_ROOT:-}" ]]; then BENCHMARKS="$BENCHMARKS arface"; echo "[eval] including AR Face"; fi
+if [[ -n "${YALEB_ROOT:-}" ]]; then BENCHMARKS="$BENCHMARKS yaleb"; echo "[eval] including Yale-B"; fi
+
 # Real worn-occlusion + lighting transfer (MFR2 masks, MeGlass glasses) + aging.
 # shellcheck disable=SC2086
 python -m research_v2.src.eval.run_real_benchmarks \

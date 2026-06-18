@@ -32,12 +32,36 @@ MAX_IMPOSTOR = 3000
 
 _IMG_EXTS = ("*.jpg", "*.jpeg", "*.png")
 
+# Real RMFRD ships as two parallel identity trees: masked and unmasked. We detect
+# them so genuine pairs can be the HARD masked<->unmasked case rather than two
+# images of the same condition.
+_MASKED_DIRNAMES = ("AFDB_masked_face_dataset", "masked", "masked_face",
+                    "self-built-masked-face-recognition-dataset")
+_UNMASKED_DIRNAMES = ("AFDB_face_dataset", "unmasked", "face", "normal")
+
 
 def _imgs(d: Path) -> List[Path]:
     out: List[Path] = []
     for ext in _IMG_EXTS:
         out.extend(d.glob(ext))
     return sorted(out)
+
+
+def _find_tree(root: Path, names: Tuple[str, ...]) -> Path | None:
+    """Locate a masked/unmasked sub-tree by known directory names (any depth
+    up to 2), so RMFRD_ROOT can point at either the dataset root or a parent."""
+    for name in names:
+        cand = root / name
+        if cand.is_dir():
+            return cand
+    for sub in root.iterdir() if root.is_dir() else []:
+        if sub.is_dir() and sub.name in names:
+            return sub
+        if sub.is_dir():
+            for sub2 in sub.iterdir():
+                if sub2.is_dir() and sub2.name in names:
+                    return sub2
+    return None
 
 
 def _identities(root: Path) -> List[Tuple[str, List[Path]]]:
@@ -49,7 +73,59 @@ def _identities(root: Path) -> List[Tuple[str, List[Path]]]:
     return ids
 
 
+def _identities_split(root: Path):
+    """Return {identity: (masked_imgs, unmasked_imgs)} if the two-tree RMFRD
+    layout is present, else None (fall back to the flat ImageFolder builder)."""
+    masked_root = _find_tree(root, _MASKED_DIRNAMES)
+    unmasked_root = _find_tree(root, _UNMASKED_DIRNAMES)
+    if masked_root is None or unmasked_root is None:
+        return None
+    masked = {name: imgs for name, imgs in _identities(masked_root)}
+    unmasked = {name: imgs for name, imgs in _identities(unmasked_root)}
+    combined: dict = {}
+    for name in set(masked) | set(unmasked):
+        combined[name] = (masked.get(name, []), unmasked.get(name, []))
+    return combined
+
+
+def _build_pairs_split(split: dict) -> List[Tuple[Path, Path, int]]:
+    """Build pairs from the masked/unmasked split. Genuine pairs are the HARD
+    masked<->unmasked case (same identity); impostors are masked-vs-unmasked
+    across different identities."""
+    rng = random.Random(SEED)
+    # identities that have at least one masked AND one unmasked image
+    usable = [(n, m, u) for n, (m, u) in split.items() if m and u]
+    if len(usable) < 2:
+        return []
+
+    genuine: List[Tuple[Path, Path, int]] = []
+    for _, m, u in usable:
+        genuine.append((rng.choice(m), rng.choice(u), 1))
+    rng.shuffle(genuine)
+    genuine = genuine[:MAX_GENUINE]
+
+    impostor: List[Tuple[Path, Path, int]] = []
+    target = min(MAX_IMPOSTOR, len(genuine))
+    attempts, max_attempts = 0, target * 20 + 1
+    while len(impostor) < target and attempts < max_attempts:
+        attempts += 1
+        (n1, m1, _u1), (n2, _m2, u2) = rng.sample(usable, 2)
+        if m1 and u2:
+            impostor.append((rng.choice(m1), rng.choice(u2), 0))
+
+    pairs = genuine + impostor
+    rng.shuffle(pairs)
+    return pairs
+
+
 def _build_pairs(root: Path) -> List[Tuple[Path, Path, int]]:
+    # Prefer the real two-tree (masked/unmasked) layout when present.
+    split = _identities_split(root)
+    if split is not None:
+        pairs = _build_pairs_split(split)
+        if pairs:
+            return pairs
+
     ids = _identities(root)
     if not ids:
         return []
@@ -99,5 +175,6 @@ def load() -> Benchmark:
     return Benchmark(
         name="rmfrd", pairs=pairs, folds=None,
         notes="Real-world Masked Face Recognition Dataset — staged offline "
-              "via RMFRD_ROOT; real worn masks.",
+              "via RMFRD_ROOT; genuine pairs are masked<->unmasked of the same "
+              "identity (hard case) when the two-tree layout is present.",
     )

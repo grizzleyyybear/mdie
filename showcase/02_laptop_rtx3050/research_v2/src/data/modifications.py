@@ -21,11 +21,22 @@ import cv2
 import numpy as np
 
 
-# Opt-in: stronger, more realistic worn-mask synthesis for training-time
-# augmentation. OFF by default so the validated LFW pipeline is byte-identical;
-# enable with MDIE_REALISTIC_MASKS=1 (or pass realistic=True) for CASIA-scale runs.
+# Opt-in realism toggles for training-time augmentation. Both default OFF so the
+# validated LFW pipeline stays byte-identical (and the modification class count is
+# unchanged). Enable for CASIA-scale runs:
+#   MDIE_REALISTIC_AUG=1    -> realistic mask + glasses + cap + structured occluder
+#   MDIE_REALISTIC_MASKS=1  -> realistic mask only (kept for backward compatibility)
+def _flag(name: str) -> bool:
+    return os.environ.get(name, "0").lower() in ("1", "true", "yes")
+
+
+def _realistic_aug_enabled() -> bool:
+    return _flag("MDIE_REALISTIC_AUG")
+
+
 def _realistic_masks_enabled() -> bool:
-    return os.environ.get("MDIE_REALISTIC_MASKS", "0").lower() in ("1", "true", "yes")
+    # The broad MDIE_REALISTIC_AUG flag implies realistic masks too.
+    return _flag("MDIE_REALISTIC_MASKS") or _realistic_aug_enabled()
 
 
 # ---------------------------------------------------------------------------
@@ -65,6 +76,8 @@ def _disguise_glasses(img: np.ndarray, rng: np.random.RandomState) -> np.ndarray
     """Eyeglasses or sunglasses. Opacity is randomised so the class spans clear
     prescription frames (faint, mostly the rims) through fully opaque sunglasses
     that hide the orbital region entirely — the hard case for the eye landmarks."""
+    if _realistic_aug_enabled():
+        return _disguise_glasses_realistic(img, rng)
     out = img.copy()
     h, w = img.shape[:2]
     eye_y = int(h * (0.40 + 0.04 * rng.rand()))
@@ -153,11 +166,133 @@ def _disguise_mask_realistic(img: np.ndarray,
     return out
 
 
+def _disguise_glasses_realistic(img: np.ndarray,
+                                rng: np.random.RandomState) -> np.ndarray:
+    """Realistic eyewear: rounded-rectangle lenses, a thicker frame, a nose
+    bridge and temple arms, plus an optional specular glint streak on each lens.
+    Spans clear prescription frames (faint tint, visible rims) to fully opaque
+    sunglasses. Opt-in (MDIE_REALISTIC_AUG=1); deterministic in ``rng``."""
+    out = img.copy()
+    h, w = img.shape[:2]
+    eye_y = int(h * (0.40 + 0.04 * rng.rand()))
+    half_w = int(w * (0.13 + 0.03 * rng.rand()))
+    half_h = int(half_w * (0.55 + 0.12 * rng.rand()))
+    lx, rx = int(w * 0.35), int(w * 0.65)
+    style = rng.rand()
+    dark = style < 0.5                                   # sunglasses vs clear
+    tint = (18, 18, 22) if dark else (95, 100, 110)
+    fill = 0.92 if dark else 0.32
+    radius = max(2, int(half_h * 0.6))
+
+    def _round_lens(cx, into, color, alpha):
+        x0, y0 = cx - half_w, eye_y - half_h
+        x1, y1 = cx + half_w, eye_y + half_h
+        ov = into.copy()
+        cv2.rectangle(ov, (x0 + radius, y0), (x1 - radius, y1), color, -1)
+        cv2.rectangle(ov, (x0, y0 + radius), (x1, y1 - radius), color, -1)
+        for cxx, cyy in ((x0 + radius, y0 + radius), (x1 - radius, y0 + radius),
+                         (x0 + radius, y1 - radius), (x1 - radius, y1 - radius)):
+            cv2.circle(ov, (cxx, cyy), radius, color, -1)
+        cv2.addWeighted(ov, alpha, into, 1 - alpha, 0, into)
+
+    _round_lens(lx, out, tint, fill)
+    _round_lens(rx, out, tint, fill)
+    # Frame outline (rounded rect approximated with a thick stroke).
+    frame_col = (12, 12, 14)
+    th = 2 + int(rng.rand() < 0.5)
+    for cx in (lx, rx):
+        cv2.ellipse(out, (cx, eye_y), (half_w, half_h), 0, 0, 360, frame_col, th)
+    # Bridge over the nose + temple arms toward the ears.
+    cv2.line(out, (lx + half_w, eye_y), (rx - half_w, eye_y), frame_col, th + 1)
+    cv2.line(out, (lx - half_w, eye_y), (0, eye_y - int(half_h * 0.3)), frame_col, th)
+    cv2.line(out, (rx + half_w, eye_y), (w, eye_y - int(half_h * 0.3)), frame_col, th)
+    # Specular glint: a bright diagonal streak across each lens (glass reflection).
+    if rng.rand() < 0.7:
+        glint = (235, 235, 235)
+        gov = out.copy()
+        for cx in (lx, rx):
+            gx0 = cx - int(half_w * 0.5); gy0 = eye_y - int(half_h * 0.5)
+            gx1 = cx + int(half_w * 0.1); gy1 = eye_y + int(half_h * 0.4)
+            cv2.line(gov, (gx0, gy0), (gx1, gy1), glint, max(1, half_h // 4))
+        cv2.addWeighted(gov, 0.25, out, 0.75, 0, out)
+    return out
+
+
+def _disguise_cap_realistic(img: np.ndarray,
+                            rng: np.random.RandomState) -> np.ndarray:
+    """Realistic peaked cap: a curved crown over the top of the head, a forward
+    brim/peak, and a soft cast shadow on the upper forehead just below the brim.
+    Opt-in (MDIE_REALISTIC_AUG=1); deterministic in ``rng``; only paints the
+    upper face so the bone-target contract is preserved."""
+    out = img.copy()
+    h, w = img.shape[:2]
+    brim_y = int(h * (0.24 + 0.07 * rng.rand()))
+    colors = [(38, 38, 38), (28, 48, 88), (88, 40, 40), (55, 68, 68),
+              (70, 70, 75), (30, 60, 45)]
+    color = colors[rng.randint(len(colors))]
+    # Curved crown: a filled dome from the top down to the brim line.
+    crown_pts = [[0, 0], [w, 0], [w, brim_y]]
+    for t in np.linspace(1.0, 0.0, 9):
+        x = int(w * t)
+        dome = brim_y - int(h * 0.05 * np.sin(np.pi * t))   # bulge up in the middle
+        crown_pts.append([x, dome])
+    crown_pts.append([0, brim_y])
+    cv2.fillPoly(out, [np.array(crown_pts, dtype=np.int32)],
+                 tuple(int(c) for c in color))
+    # Forward peak/brim: a wide shallow ellipse jutting below the crown.
+    peak_col = tuple(int(c * 0.7) for c in color)
+    cv2.ellipse(out, (int(w * 0.5), brim_y),
+                (int(w * 0.5), int(h * 0.06 + h * 0.03 * rng.rand())),
+                0, 0, 180, peak_col, -1)
+    # Soft cast shadow on the forehead strip just below the brim.
+    sh_y0, sh_y1 = brim_y, min(h, brim_y + int(h * 0.10))
+    if sh_y1 > sh_y0:
+        strip = out[sh_y0:sh_y1].astype(np.float32) * 0.7
+        out[sh_y0:sh_y1] = np.clip(strip, 0, 255).astype(np.uint8)
+    return out
+
+
+def _occlusion_structured(img: np.ndarray,
+                          rng: np.random.RandomState) -> np.ndarray:
+    """Structured real-world occluder instead of RGB noise: a skin/fabric/phone
+    -toned blob (rounded rect or ellipse) over part of the face, modelling a
+    hand, phone, scarf or held object. Opt-in (MDIE_REALISTIC_AUG=1);
+    deterministic in ``rng``."""
+    out = img.copy()
+    h, w = img.shape[:2]
+    rh = rng.randint(int(h * 0.20), int(h * 0.45))
+    rw = rng.randint(int(w * 0.20), int(w * 0.45))
+    y0 = rng.randint(0, max(1, h - rh))
+    x0 = rng.randint(0, max(1, w - rw))
+    palettes = [
+        (175, 135, 110),   # skin/hand tone
+        (40, 40, 45),      # dark phone / object
+        (200, 200, 205),   # light fabric / scarf
+        (90, 70, 60),      # brown leather / glove
+        (60, 80, 130),     # denim / cloth
+    ]
+    color = palettes[rng.randint(len(palettes))]
+    cx, cy = x0 + rw // 2, y0 + rh // 2
+    if rng.rand() < 0.5:
+        cv2.ellipse(out, (cx, cy), (rw // 2, rh // 2), 0, 0, 360,
+                    tuple(int(c) for c in color), -1)
+    else:
+        cv2.rectangle(out, (x0, y0), (x0 + rw, y0 + rh),
+                      tuple(int(c) for c in color), -1)
+    # Light shading gradient so it isn't a flat fill (more object-like).
+    shade = out[y0:y0+rh, x0:x0+rw].astype(np.float32)
+    grad = np.linspace(0.8, 1.1, shade.shape[0], dtype=np.float32)[:, None, None]
+    out[y0:y0+rh, x0:x0+rw] = np.clip(shade * grad, 0, 255).astype(np.uint8)
+    return out
+
+
 
 def _disguise_cap(img: np.ndarray, rng: np.random.RandomState) -> np.ndarray:
     """Cap/hat covering the forehead and brow ridge — tests whether identity
     survives when the upper-face bone landmarks are hidden (forcing reliance on
     cheekbones, orbital rims and jaw)."""
+    if _realistic_aug_enabled():
+        return _disguise_cap_realistic(img, rng)
     out = img.copy()
     h, w = img.shape[:2]
     brim_y = int(h * (0.26 + 0.06 * rng.rand()))     # lower edge of the cap
@@ -180,6 +315,8 @@ def _disguise_cap(img: np.ndarray, rng: np.random.RandomState) -> np.ndarray:
 
 
 def _occlusion_random(img: np.ndarray, rng: np.random.RandomState) -> np.ndarray:
+    if _realistic_aug_enabled():
+        return _occlusion_structured(img, rng)
     out = img.copy()
     h, w = img.shape[:2]
     rh = rng.randint(int(h * 0.18), int(h * 0.42))

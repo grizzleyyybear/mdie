@@ -43,7 +43,10 @@ CPB="${CPB:-32}"
 SPC="${SPC:-8}"
 PRETRAINED="${PRETRAINED:-0}"  # IR-100 has no public w600k weights -> from scratch
 
-echo "[ddp] GPUS=$GPUS DATASET=$DATASET BACKBONE=$BACKBONE EPOCHS=$EPOCHS_S2 BATCH=$BATCH LR=$LR"
+# Realistic occlusion augmentation ON by default for scale-up; REALISTIC_AUG=0 to disable.
+export MDIE_REALISTIC_AUG="${REALISTIC_AUG:-1}"
+
+echo "[ddp] GPUS=$GPUS DATASET=$DATASET BACKBONE=$BACKBONE EPOCHS=$EPOCHS_S2 BATCH=$BATCH LR=$LR realistic_aug=$MDIE_REALISTIC_AUG"
 
 # IR-100 must be trained from scratch (no pretrained w600k IR-100 weights exist).
 PRETRAINED_FLAG="--no-pretrained-backbone"

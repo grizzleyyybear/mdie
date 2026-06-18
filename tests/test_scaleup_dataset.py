@@ -78,20 +78,57 @@ class RealisticMaskTests(unittest.TestCase):
         self.assertTrue(np.array_equal(a, out))
         self.assertEqual(len(M.MODIFICATION_TYPES), 10)
 
-    def test_realistic_on_is_deterministic(self) -> None:
-        os.environ["MDIE_REALISTIC_MASKS"] = "1"
+    def test_realistic_aug_off_is_identical_on_deterministic(self) -> None:
+        """MDIE_REALISTIC_AUG=1 must change all four occluders deterministically;
+        default OFF must be byte-identical to the flat synthetic baseline."""
         import importlib
+        for k in ("MDIE_REALISTIC_AUG", "MDIE_REALISTIC_MASKS"):
+            os.environ.pop(k, None)
         import research_v2.src.data.modifications as M
         importlib.reload(M)
+        img = (np.random.RandomState(0).rand(112, 112, 3) * 255).astype("uint8")
+        mods = ["disguise_glasses", "disguise_mask", "disguise_cap", "occlusion_random"]
+        ref = {k: M.apply_modification(img, k, seed=5) for k in mods}
+
+        os.environ["MDIE_REALISTIC_AUG"] = "1"
+        importlib.reload(M)
         try:
-            img = (np.random.RandomState(1).rand(112, 112, 3) * 255).astype("uint8")
-            b1 = M._disguise_mask(img, np.random.RandomState(3))
-            b2 = M._disguise_mask(img, np.random.RandomState(3))
-            self.assertTrue(np.array_equal(b1, b2))
-            self.assertEqual(b1.shape, img.shape)
+            on1 = {k: M.apply_modification(img, k, seed=5) for k in mods}
+            on2 = {k: M.apply_modification(img, k, seed=5) for k in mods}
+            for k in mods:
+                self.assertTrue(np.array_equal(on1[k], on2[k]), f"{k} not deterministic")
+                self.assertFalse(np.array_equal(on1[k], ref[k]), f"{k} unchanged when ON")
+            self.assertEqual(len(M.MODIFICATION_TYPES), 10)
         finally:
-            os.environ.pop("MDIE_REALISTIC_MASKS", None)
+            os.environ.pop("MDIE_REALISTIC_AUG", None)
             importlib.reload(M)
+
+
+class RMFRDPairingTests(unittest.TestCase):
+    def test_two_tree_masked_unmasked_pairing(self) -> None:
+        import importlib
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for tree, tag in (("AFDB_masked_face_dataset", "m"),
+                              ("AFDB_face_dataset", "u")):
+                for pid in range(5):
+                    d = root / tree / f"id{pid}"
+                    d.mkdir(parents=True)
+                    for k in range(3):
+                        img = (np.random.RandomState(pid * 7 + k).rand(112, 112, 3) * 255).astype("uint8")
+                        cv2.imwrite(str(d / f"{tag}{k}.jpg"), img)
+            os.environ["RMFRD_ROOT"] = str(root)
+            try:
+                import research_v2.src.data.benchmarks.rmfrd as R
+                importlib.reload(R)
+                b = R.load()
+                pos = [p for p in b.pairs if p[2] == 1]
+                self.assertGreater(len(pos), 0)
+                # every genuine pair must cross the masked<->unmasked boundary
+                for a, c, _ in pos:
+                    self.assertNotEqual("masked" in str(a), "masked" in str(c))
+            finally:
+                os.environ.pop("RMFRD_ROOT", None)
 
 
 if __name__ == "__main__":
