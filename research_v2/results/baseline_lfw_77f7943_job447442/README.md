@@ -18,7 +18,8 @@ live `research_v2/results/*` files without losing this reference point.
   deterministic, masked-self 0.917 > imposter 0.750).
 
 ## NOTE on paper.tex
-`research_v2/paper/paper.tex` Table `tab:real` currently cites numbers from an
+`research_v2/paper/paper.tex` Table `tab:real` previously cited numbers from an
 earlier/stronger run (MeGlass 0.926, MFR2 0.826, CALFW 0.599, AgeDB-30 0.683).
-Those do NOT match this snapshot; the qualitative claim ("MDIE wins every
-benchmark") still holds, but the magnitudes differ. Reconcile before submission.
+As of commit reconciling this snapshot, the paper table + abstract were updated
+to match these reproducible results (MeGlass 0.824, MFR2 0.734, CALFW 0.557,
+AgeDB-30 0.594). MDIE still wins every benchmark.

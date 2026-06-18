@@ -44,7 +44,7 @@ modification label required. On a held-out (unseen-identity) LFW protocol with
 nine occlusion/lighting modifications, MDIE attains \textbf{pooled AUC $0.979$}
 (occlusion family $0.975$, lighting family $0.980$) versus $0.749$ for the best
 comparably-trained baseline, and transfers to \emph{real} worn occlusions
-(MFR2 masks AUC $0.826$; MeGlass glasses AUC $0.926$), winning every
+(MFR2 masks AUC $0.734$; MeGlass glasses AUC $0.824$), winning every
 comparably-trained comparison. We further introduce an \textbf{attention--bone
 IoU} interpretability metric with controls: the learned attention overlaps each
 individual's \emph{own} bones (IoU $0.694$) far more than a different face's
@@ -298,8 +298,8 @@ Even the hardest case (mask) clears the best baseline by $+0.28$ AUC.
 Table~\ref{tab:real} evaluates the \emph{same} deployed model on public
 protocols. MFR2 (real masks) and MeGlass (real eyeglasses) are the acid test
 that the bone-anchored embedding transfers off the synthetic training
-distribution. MDIE wins every comparably-trained comparison by $+0.15$ to
-$+0.34$ AUC, and remains ahead even on off-niche cross-age sets (CALFW,
+distribution. MDIE wins every comparably-trained comparison by $+0.03$ to
+$+0.10$ AUC, and remains ahead even on off-niche cross-age sets (CALFW,
 AgeDB-30) where the baselines sit near chance.
 
 \begin{table}[t]
@@ -311,10 +311,10 @@ baseline vs.\ MDIE (same deployed $512$-d model).}
 \toprule
 Benchmark & pairs & best baseline & \textbf{MDIE} \\
 \midrule
-MFR2 (real masks)    & 848   & 0.677 & \textbf{0.826} \\
-MeGlass (real glasses)& 3000  & 0.706 & \textbf{0.926} \\
-CALFW (cross-age)    & 6000  & 0.516 & \textbf{0.599} \\
-AgeDB-30             & 6000  & 0.500 & \textbf{0.683} \\
+MFR2 (real masks)    & 848   & 0.667 & \textbf{0.734} \\
+MeGlass (real glasses)& 3000  & 0.726 & \textbf{0.824} \\
+CALFW (cross-age)    & 6000  & 0.523 & \textbf{0.557} \\
+AgeDB-30             & 6000  & 0.536 & \textbf{0.594} \\
 \bottomrule
 \end{tabular}
 \end{table}
