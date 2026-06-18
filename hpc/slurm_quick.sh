@@ -17,7 +17,15 @@
 #SBATCH --partition=dgxnp
 
 # shellcheck source=./_prelude.sh
-source "$(dirname "$0")/_prelude.sh"
+# Under SLURM the batch script is copied to a private spool dir, so $0 no longer
+# sits next to _prelude.sh; resolve it via SLURM_SUBMIT_DIR (the dir sbatch was
+# launched from = repo root). Fall back to this script's own dir when run
+# directly without SLURM.
+if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+    source "$SLURM_SUBMIT_DIR/hpc/_prelude.sh"
+else
+    source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/_prelude.sh"
+fi
 
 python -m research_v2.src.preflight
 

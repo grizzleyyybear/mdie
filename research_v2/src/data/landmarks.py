@@ -18,6 +18,7 @@ Cache format (npz): ``keys`` = array of image-path strings, ``targets`` =
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -27,6 +28,43 @@ GRID = 14
 # Bump this whenever the rigid-point set, their placement, or POINT_WEIGHTS
 # change so a stale on-disk target cache is automatically rebuilt.
 TARGET_VERSION = 4
+
+
+def configure_onnxruntime_threads() -> None:
+    """Force onnxruntime to use an explicit intra-op thread count.
+
+    On cluster compute nodes (e.g. PARAM Siddhi-AI) the process runs inside a
+    cgroup whose allowed CPU set is not the contiguous ``0..N-1`` range that
+    onnxruntime assumes, so its default per-thread affinity pinning fails with
+    ``EINVAL`` and floods stderr with thousands of ``pthread_setaffinity_np
+    failed`` lines. Specifying the thread count explicitly disables that
+    affinity pinning (per onnxruntime's own hint in the warning).
+
+    insightface forwards only ``providers``/``provider_options`` to
+    ``InferenceSession``, so we inject a ``SessionOptions`` globally through a
+    one-time, idempotent monkeypatch on ``InferenceSession.__init__``. The patch
+    only adds ``sess_options`` when the caller did not supply one, so it never
+    overrides explicit configuration.
+    """
+    try:
+        import onnxruntime as ort
+    except Exception:
+        return
+    if getattr(ort.InferenceSession, "_mdie_threads_patched", False):
+        return
+    _orig_init = ort.InferenceSession.__init__
+    n_threads = max(1, int(os.environ.get("OMP_NUM_THREADS") or os.cpu_count() or 4))
+
+    def _patched_init(self, *args, **kwargs):
+        if kwargs.get("sess_options") is None and (len(args) < 2 or args[1] is None):
+            so = ort.SessionOptions()
+            so.intra_op_num_threads = n_threads
+            so.inter_op_num_threads = 1
+            kwargs["sess_options"] = so
+        _orig_init(self, *args, **kwargs)
+
+    ort.InferenceSession.__init__ = _patched_init
+    ort.InferenceSession._mdie_threads_patched = True
 
 
 # --- iBUG-68 rigid bone extraction -----------------------------------------
@@ -193,6 +231,7 @@ def build_cache(paths, out_npz: str | Path, grid: int = GRID,
     import cv2
     from insightface.app import FaceAnalysis
 
+    configure_onnxruntime_threads()
     app = FaceAnalysis(name="buffalo_l",
                        allowed_modules=["detection", "landmark_3d_68"],
                        providers=["CPUExecutionProvider"])

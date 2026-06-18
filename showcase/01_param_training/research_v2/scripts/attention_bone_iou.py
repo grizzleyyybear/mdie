@@ -35,6 +35,7 @@ from research_v2.src.data import build_face_dataset, prepare_lfw
 from research_v2.src.data.landmarks import (
     GRID, rigid_bone_points, target_from_landmarks)
 from research_v2.src.data.landmarks import RIGID_GROUPS
+from research_v2.src.data.landmarks import configure_onnxruntime_threads
 from research_v2.src.novel.mdie import MDIE
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -140,6 +141,7 @@ def main():
     model = load_mdie()
 
     from insightface.app import FaceAnalysis
+    configure_onnxruntime_threads()
     app = FaceAnalysis(name="buffalo_l",
                        allowed_modules=["detection", "landmark_3d_68"],
                        providers=["CPUExecutionProvider"])
