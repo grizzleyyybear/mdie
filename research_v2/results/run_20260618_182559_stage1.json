@@ -1,0 +1,79 @@
+{
+  "run_name": "stage1",
+  "timestamp": "20260618_182559",
+  "git_sha": "77f7943",
+  "python": "3.11.15",
+  "platform": "Linux-5.15.0-1062-nvidia-x86_64-with-glibc2.35",
+  "torch": "2.5.1+cu121",
+  "cuda_available": true,
+  "cuda_device": "NVIDIA A100-SXM4-40GB",
+  "argv": [
+    "/nlsasfs/home/csaml/bhatib/mrinal/projects/mdie/research_v2/src/run_stage1.py",
+    "--epochs",
+    "50",
+    "--batch",
+    "256",
+    "--lr",
+    "2e-3",
+    "--workers",
+    "8",
+    "--channels-last",
+    "--val-pairs",
+    "3000"
+  ],
+  "settings": {
+    "train": {
+      "image_size": 112,
+      "batch_size": 32,
+      "epochs": 25,
+      "lr": 0.001,
+      "weight_decay": 0.0005,
+      "warmup_epochs": 2,
+      "grad_accum_steps": 2,
+      "embedding_dim": 512,
+      "arcface_margin": 0.5,
+      "arcface_scale": 64.0,
+      "cosface_margin": 0.35,
+      "triplet_margin": 0.3
+    },
+    "eval": {
+      "n_pos_pairs": 3000,
+      "n_neg_pairs": 3000,
+      "far_targets": [
+        0.1,
+        0.01,
+        0.001
+      ]
+    },
+    "novel": {
+      "use_region_prior": true,
+      "use_amd": true,
+      "use_iccl": true,
+      "amd_lambda": 0.1,
+      "iccl_lambda": 0.5,
+      "n_modification_classes": 10
+    }
+  },
+  "extra": {
+    "epochs": 50,
+    "batch": 256,
+    "lr": 0.002,
+    "workers": 8,
+    "grad_clip": 5.0,
+    "warmup_epochs": 1,
+    "channels_last": true,
+    "balanced_sampler": false,
+    "classes_per_batch": 16,
+    "samples_per_class": 4,
+    "val_pairs": 3000,
+    "compile_model": false,
+    "resume": false,
+    "quick": false,
+    "baselines": [
+      "facenet",
+      "arcface",
+      "cosface",
+      "mobilefacenet"
+    ]
+  }
+}
