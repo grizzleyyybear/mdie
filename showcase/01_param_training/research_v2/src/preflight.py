@@ -132,10 +132,11 @@ def _check_paired_dataset() -> bool:
     ds = PairedModificationDataset(paths[:8], labels[:8],
                                     image_size=SETTINGS.train.image_size,
                                     modifications=MODIFICATION_TYPES)
-    clean, modded, id_lbl, mod_lbl = ds[0]
+    clean, modded, id_lbl, mod_lbl, bone_target = ds[0]
     assert clean.shape == (3, 112, 112), f"clean shape {clean.shape}"
     assert modded.shape == (3, 112, 112), f"modded shape {modded.shape}"
     assert isinstance(id_lbl, int) and isinstance(mod_lbl, int)
+    assert bone_target.shape == (ds.grid, ds.grid), f"bone_target shape {bone_target.shape}"
     print(f"  {PASS} PairedModificationDataset: shapes + dtypes correct")
     return True
 
