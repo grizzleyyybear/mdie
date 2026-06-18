@@ -146,7 +146,8 @@ class IdentityBalancedSampler(Sampler[List[int]]):
     """
 
     def __init__(self, labels, classes_per_batch: int, samples_per_class: int,
-                 num_batches: int | None = None, seed: int = 0):
+                 num_batches: int | None = None, seed: int = 0,
+                 rank: int | None = None, num_replicas: int | None = None):
         if classes_per_batch <= 0 or samples_per_class <= 0:
             raise ValueError("classes_per_batch and samples_per_class must be positive")
         if num_batches is not None and num_batches <= 0:
@@ -171,12 +172,20 @@ class IdentityBalancedSampler(Sampler[List[int]]):
             )
 
         self.batch_size = self.classes_per_batch * self.samples_per_class
-        self.num_batches = (
+        full_batches = (
             int(num_batches)
             if num_batches is not None
             else max(1, len(self.labels) // self.batch_size)
         )
-        self.rng = np.random.RandomState(seed)
+        # Distributed: each rank draws a disjoint slice of the epoch's batches
+        # (a different RNG seed per rank) so the global epoch covers ~all data
+        # while keeping the in-batch identity structure ICCL relies on.
+        if num_replicas and num_replicas > 1:
+            self.num_batches = max(1, full_batches // int(num_replicas))
+            self.rng = np.random.RandomState(seed + int(rank or 0))
+        else:
+            self.num_batches = full_batches
+            self.rng = np.random.RandomState(seed)
 
     def __iter__(self) -> Iterator[List[int]]:
         for _ in range(self.num_batches):

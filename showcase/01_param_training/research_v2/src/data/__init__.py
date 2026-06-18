@@ -1,4 +1,5 @@
 from .lfw import prepare_lfw, build_face_dataset
+from .casia import prepare_casia, build_train_dataset
 from .torch_dataset import (
     FaceClassificationDataset,
     IdentityBalancedSampler,
@@ -11,6 +12,8 @@ from .torch_dataset import (
 __all__ = [
     "prepare_lfw",
     "build_face_dataset",
+    "prepare_casia",
+    "build_train_dataset",
     "MODIFICATION_TYPES",
     "ModificationApplier",
     "apply_modification",

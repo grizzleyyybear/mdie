@@ -75,60 +75,53 @@ def _check_disk() -> bool:
     return True
 
 
-def _check_dataset() -> bool:
+def _check_dataset(dataset: str = "lfw") -> bool:
     import os
-    from .data import build_face_dataset, prepare_lfw
+    from .data import build_train_dataset
 
-    # If MDIE_SKIP_DATASET_PREFLIGHT == "auto", skip when LFW dir is empty —
+    # If MDIE_SKIP_DATASET_PREFLIGHT == "auto", skip when the corpus dir is empty —
     # this prevents env_setup.sh from triggering the flaky figshare download.
     skip_mode = os.environ.get("MDIE_SKIP_DATASET_PREFLIGHT", "0")
-    lfw_root = DATA_DIR / "lfw"
-    has_local_lfw = (
-        lfw_root.exists()
+    data_root = DATA_DIR / dataset
+    has_local = (
+        data_root.exists()
         and any(
-            p.is_dir() and any(p.glob("*.jpg")) for p in lfw_root.rglob("*")
+            p.is_dir() and any(p.glob("*.jpg")) for p in data_root.rglob("*")
         )
     )
-    if skip_mode == "1" or (skip_mode == "auto" and not has_local_lfw):
-        print(f"  {WARN} LFW not staged yet at {lfw_root} — skipping")
-        print(f"         run:  bash hpc/stage_datasets.sh   (and re-run preflight)")
+    if skip_mode == "1" or (skip_mode == "auto" and not has_local):
+        print(f"  {WARN} {dataset} not staged yet at {data_root} — skipping")
+        print(f"         stage it (bash hpc/stage_datasets.sh for lfw) and re-run preflight")
         return True
     try:
-        lfw_dir = prepare_lfw(DATA_DIR, min_faces_per_person=8)
+        paths, labels, names = build_train_dataset(dataset, DATA_DIR, min_imgs=4)
     except Exception as e:  # noqa: BLE001
-        print(f"  {FAIL} prepare_lfw: {e}")
+        print(f"  {FAIL} build_train_dataset({dataset}): {e}")
         return False
-    try:
-        paths, labels, names = build_face_dataset(lfw_dir, min_imgs=4)
-    except Exception as e:  # noqa: BLE001
-        print(f"  {FAIL} build_face_dataset: {e}")
-        return False
-    print(f"  {PASS} LFW: {len(paths)} imgs, {len(names)} identities")
+    print(f"  {PASS} {dataset}: {len(paths)} imgs, {len(names)} identities")
     if len(paths) < 100:
         print(f"  {WARN} fewer than 100 images — training will not converge")
         return False
     return True
 
 
-def _check_paired_dataset() -> bool:
+def _check_paired_dataset(dataset: str = "lfw") -> bool:
     import os
     from .data import (
-        MODIFICATION_TYPES, PairedModificationDataset, build_face_dataset,
-        prepare_lfw,
+        MODIFICATION_TYPES, PairedModificationDataset, build_train_dataset,
     )
-    lfw_root = DATA_DIR / "lfw"
-    has_local_lfw = (
-        lfw_root.exists()
+    data_root = DATA_DIR / dataset
+    has_local = (
+        data_root.exists()
         and any(
-            p.is_dir() and any(p.glob("*.jpg")) for p in lfw_root.rglob("*")
+            p.is_dir() and any(p.glob("*.jpg")) for p in data_root.rglob("*")
         )
     )
     skip_mode = os.environ.get("MDIE_SKIP_DATASET_PREFLIGHT", "0")
-    if skip_mode == "1" or (skip_mode == "auto" and not has_local_lfw):
-        print(f"  {WARN} skipping paired-dataset check (LFW not staged)")
+    if skip_mode == "1" or (skip_mode == "auto" and not has_local):
+        print(f"  {WARN} skipping paired-dataset check ({dataset} not staged)")
         return True
-    lfw_dir = prepare_lfw(DATA_DIR, min_faces_per_person=8)
-    paths, labels, _ = build_face_dataset(lfw_dir, min_imgs=4)
+    paths, labels, _ = build_train_dataset(dataset, DATA_DIR, min_imgs=4)
     ds = PairedModificationDataset(paths[:8], labels[:8],
                                     image_size=SETTINGS.train.image_size,
                                     modifications=MODIFICATION_TYPES)
@@ -212,6 +205,13 @@ def _check_real_benchmarks() -> bool:
 
 
 def main() -> int:
+    import argparse
+    import os
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dataset", choices=["lfw", "casia"],
+                     default=os.environ.get("MDIE_DATASET", "lfw"),
+                     help="corpus to preflight (default: lfw, or $MDIE_DATASET)")
+    args = ap.parse_args()
     print("=" * 60)
     print("MDIE preflight — runs all the cheap checks before ML training")
     print("=" * 60)
@@ -222,8 +222,9 @@ def main() -> int:
         ("Versions / hardware", _check_versions),
         ("Writable directories", _check_dirs),
         ("Disk space", _check_disk),
-        ("LFW dataset", _check_dataset),
-        ("Paired modification dataset", _check_paired_dataset),
+        (f"{args.dataset} dataset", lambda: _check_dataset(args.dataset)),
+        ("Paired modification dataset",
+         lambda: _check_paired_dataset(args.dataset)),
         ("Baselines fwd+bwd", lambda: _check_baselines(device)),
         ("MDIE variants fwd+bwd", lambda: _check_mdie(device)),
         ("Real-benchmark loaders", _check_real_benchmarks),

@@ -21,7 +21,7 @@ import torch
 import torch.nn as nn
 
 
-__all__ = ["IResNet50", "load_iresnet50_w600k"]
+__all__ = ["IResNet50", "IResNet100", "load_iresnet50_w600k"]
 
 
 def _conv3x3(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
@@ -129,6 +129,10 @@ def _remap_w600k_keys(sd: dict) -> dict:
 
 def IResNet50(num_features: int = 512) -> IResNet:
     return IResNet(IBasicBlock, [3, 4, 14, 3], num_features=num_features)
+
+
+def IResNet100(num_features: int = 512) -> IResNet:
+    return IResNet(IBasicBlock, [3, 13, 30, 3], num_features=num_features)
 
 
 def load_iresnet50_w600k(device: torch.device | str = "cpu") -> IResNet | None:

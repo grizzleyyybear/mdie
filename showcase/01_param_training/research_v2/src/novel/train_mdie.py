@@ -75,6 +75,8 @@ def train_mdie(
     compile_model: bool = False,
     backbone_lr_mult: float = 1.0,
     attn_lambda: float = 0.5,
+    ddp: bool = False,
+    local_rank: int = 0,
 ) -> dict:
     """The PairedModificationDataset must yield (clean, modified, id_label, mod_label, bone_target)."""
     from ..hw import autocast_dtype
@@ -82,6 +84,8 @@ def train_mdie(
         Throughput, is_finite_loss, load_resumable, save_resumable, set_lr,
         try_torch_compile, warmup_cosine_lr,
     )
+    from ..train.ddp import is_main_process, wrap_ddp
+    main = is_main_process()
 
     model.to(device)
     if channels_last:
@@ -131,6 +135,11 @@ def train_mdie(
         print(f"  [resume] {name}: starting from epoch {start_epoch}, "
               f"best_loss={best_loss:.4f}")
 
+    # Wrap for distributed forward; `model` stays the raw module for all
+    # checkpoint I/O so saved state-dict keys carry no `module.` prefix and
+    # remain loadable by the single-GPU eval path.
+    fwd_model = wrap_ddp(model, local_rank) if ddp else model
+
     history = {"train_loss": [], "loss_id": [], "loss_iccl": [], "loss_mod": [],
                "val_auc": [], "epoch_time": [], "imgs_per_sec": []}
     global_step = (start_epoch - 1) * steps_per_epoch
@@ -153,8 +162,8 @@ def train_mdie(
                 modded = modded.to(memory_format=torch.channels_last)
 
             with autocast("cuda", dtype=ac_dtype, enabled=USE_AMP):
-                out_clean = model(clean, id_lbl, mod_lbl, bone_target=bone_t)
-                out_mod   = model(modded, id_lbl, mod_lbl, bone_target=bone_t)
+                out_clean = fwd_model(clean, id_lbl, mod_lbl, bone_target=bone_t)
+                out_mod   = fwd_model(modded, id_lbl, mod_lbl, bone_target=bone_t)
                 loss_id = 0.5 * (out_clean["loss_identity"] + out_mod["loss_identity"])
                 loss_iccl = identity_consistency_contrastive_loss(
                     out_clean["embedding"], out_mod["embedding"],
@@ -185,7 +194,7 @@ def train_mdie(
                 if grad_clip and grad_clip > 0:
                     if use_scaler:
                         scaler.unscale_(optim)
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                    torch.nn.utils.clip_grad_norm_(fwd_model.parameters(), grad_clip)
                 if use_scaler:
                     scaler.step(optim); scaler.update()
                 else:
@@ -218,38 +227,41 @@ def train_mdie(
         ips = tput.imgs_per_sec()
         history["epoch_time"].append(dt)
         history["imgs_per_sec"].append(ips)
-        print(f"  [{name}] epoch {epoch:3d}/{epochs}  total={agg['train_loss']/n:.4f}  "
-              f"id={agg['loss_id']/n:.4f}  iccl={agg['loss_iccl']/n:.4f}  "
-              f"mod={agg['loss_mod']/n:.4f}  auc={val_auc:.4f}  "
-              f"lr={optim.param_groups[0]['lr']:.2e}  "
-              f"skip={skipped_steps}  {dt:.1f}s  {ips:.0f} img/s")
+        if main:
+            print(f"  [{name}] epoch {epoch:3d}/{epochs}  total={agg['train_loss']/n:.4f}  "
+                  f"id={agg['loss_id']/n:.4f}  iccl={agg['loss_iccl']/n:.4f}  "
+                  f"mod={agg['loss_mod']/n:.4f}  auc={val_auc:.4f}  "
+                  f"lr={optim.param_groups[0]['lr']:.2e}  "
+                  f"skip={skipped_steps}  {dt:.1f}s  {ips:.0f} img/s")
 
-        if agg["train_loss"] / n < best_loss:
+        if main and agg["train_loss"] / n < best_loss:
             best_loss = agg["train_loss"] / n
             save_resumable(best_ckpt, model=model, optim=optim,
                            scaler=scaler if use_scaler else None,
                            epoch=epoch, best_metric=best_loss,
                            model_config=model_config)
-        if val_auc == val_auc and val_auc > best_auc:
+        if main and val_auc == val_auc and val_auc > best_auc:
             best_auc = val_auc
             save_resumable(best_auc_ckpt, model=model, optim=optim,
                            scaler=scaler if use_scaler else None,
                            epoch=epoch, best_metric=best_auc,
                            model_config=model_config)
-        save_resumable(last_ckpt, model=model, optim=optim,
-                       scaler=scaler if use_scaler else None,
-                       epoch=epoch, best_metric=best_loss,
-                       model_config=model_config)
+        if main:
+            save_resumable(last_ckpt, model=model, optim=optim,
+                           scaler=scaler if use_scaler else None,
+                           epoch=epoch, best_metric=best_loss,
+                           model_config=model_config)
 
-    with open(RESULTS_DIR / f"history_{name}.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["epoch", "total", "loss_id", "loss_iccl", "loss_mod",
-                    "val_auc", "epoch_time_s", "imgs_per_sec"])
-        for i in range(len(history["train_loss"])):
-            w.writerow([start_epoch + i, history["train_loss"][i], history["loss_id"][i],
-                        history["loss_iccl"][i], history["loss_mod"][i],
-                        history["val_auc"][i], history["epoch_time"][i],
-                        history["imgs_per_sec"][i]])
+    if main:
+        with open(RESULTS_DIR / f"history_{name}.csv", "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["epoch", "total", "loss_id", "loss_iccl", "loss_mod",
+                        "val_auc", "epoch_time_s", "imgs_per_sec"])
+            for i in range(len(history["train_loss"])):
+                w.writerow([start_epoch + i, history["train_loss"][i], history["loss_id"][i],
+                            history["loss_iccl"][i], history["loss_mod"][i],
+                            history["val_auc"][i], history["epoch_time"][i],
+                            history["imgs_per_sec"][i]])
 
     history["skipped_steps"] = skipped_steps
     history["best_auc"] = best_auc

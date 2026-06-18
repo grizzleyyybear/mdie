@@ -26,11 +26,15 @@ hpc/
 ├── README.md                  this file
 ├── env_setup.sh               once: install Miniconda + create mdie env
 ├── stage_datasets.sh          once: download LFW + MFR2 + CALFW + AgeDB-30
+├── stage_casia.sh             laptop: extract CASIA RecordIO -> ImageFolder + tar
 ├── slurm_quick.sh             4-epoch smoke run on 1 A100 (~30 min)
 ├── slurm_stage1.sh            Stage-1 baselines on 1 A100  (~3–4 h)
 ├── slurm_stage2.sh            Stage-2 MDIE + ablation on 1 A100 (~5–6 h)
 ├── slurm_eval.sh              real-bench eval + bone-IoU + compat proof (<1.5 h)
 ├── slurm_full_pipeline.sh     all of the above end-to-end (~12 h)
+├── slurm_ddp_full.sh          scale-up: Stage-2 on N A100s via DDP (CASIA/IR-100)
+├── slurm_fanout_train.sh      scale-up: 4 variants in parallel (1 GPU each)
+├── submit_fanout.sh           orchestrate the fan-out + dependency-chained merge
 └── interactive.sh             srun helper for an A100 debug shell
 ```
 
@@ -120,7 +124,57 @@ bash hpc/interactive.sh             # 1 A100, 1 hour
 Drops you onto a compute node. Inside the shell, remember to
 `source $HOME/Conda/bin/activate mdie` and `cd $HOME/mdie`.
 
-## 5. Pull artefacts back
+## 5. Scale-up: CASIA-WebFace + multi-GPU (opt-in)
+
+Everything above is unchanged and stays the default (LFW, 1 GPU). The scale-up
+path is fully additive — enable it with flags/env, nothing else breaks.
+
+**a. Stage CASIA-WebFace** (run on the laptop, then scp up — PARAM has no net):
+
+```bash
+# laptop: produce a plain ImageFolder tarball (no mxnet needed on PARAM)
+CASIA_SRC=/path/to/CASIA-WebFace  bash hpc/stage_casia.sh
+scp research_v2/datasets_cache/casia.tar \
+    <user>@login.npsf.cdac.in:~/.../mdie/research_v2/datasets_cache/
+# PARAM login node:
+cd research_v2/datasets_cache && tar -xf casia.tar
+```
+
+**b. Train.** Two multi-GPU options:
+
+```bash
+# (i) one big DDP job across N GPUs on a node (IR-100 from scratch on CASIA):
+GPUS=4 DATASET=casia BACKBONE=ir100 sbatch hpc/slurm_ddp_full.sh
+
+# (ii) fan-out: the 4 ablation variants in parallel, 1 GPU each, then merge:
+DATASET=casia bash hpc/submit_fanout.sh
+#   per-variant outputs -> research_v2/results/fanout/<variant>/
+#   merged ablation     -> research_v2/results/fanout/ablation_merged.json
+```
+
+New entrypoint flags (default to the old behaviour when omitted):
+
+| Flag / env | Effect |
+|---|---|
+| `--dataset {lfw,casia}` | training corpus (default `lfw`) |
+| `--backbone {ir50,ir100}` | Stage-2 backbone (default `ir50`) |
+| `--ddp` | DistributedDataParallel (launch with `torchrun`) |
+| `--only-variant NAME` | train/eval a single variant (fan-out) |
+| `MDIE_RESULTS_DIR` / `MDIE_FIGURES_DIR` / `MDIE_CKPT_DIR` | isolate outputs |
+| `MDIE_REALISTIC_MASKS=1` | opt-in MaskTheFace-style mask augmentation |
+
+**c. New niche eval loaders** (auto-run by `run_real_benchmarks` once staged;
+silently skipped when unset):
+
+| Variable | Maps to |
+|---|---|
+| `RMFRD_ROOT` | Real-world Masked Face Recognition Dataset |
+| `ARFACE_ROOT` | AR Face (sunglasses + scarf) |
+| `YALEB_ROOT` | Extended Yale-B (illumination sweep) |
+
+---
+
+## 6. Pull artefacts back
 
 From your local machine:
 

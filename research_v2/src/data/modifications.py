@@ -14,10 +14,18 @@ and require no external generative models. Used both for failure-mode analysis
 
 from __future__ import annotations
 
+import os
 from typing import Callable, Dict
 
 import cv2
 import numpy as np
+
+
+# Opt-in: stronger, more realistic worn-mask synthesis for training-time
+# augmentation. OFF by default so the validated LFW pipeline is byte-identical;
+# enable with MDIE_REALISTIC_MASKS=1 (or pass realistic=True) for CASIA-scale runs.
+def _realistic_masks_enabled() -> bool:
+    return os.environ.get("MDIE_REALISTIC_MASKS", "0").lower() in ("1", "true", "yes")
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +88,8 @@ def _disguise_glasses(img: np.ndarray, rng: np.random.RandomState) -> np.ndarray
 
 
 def _disguise_mask(img: np.ndarray, rng: np.random.RandomState) -> np.ndarray:
+    if _realistic_masks_enabled():
+        return _disguise_mask_realistic(img, rng)
     out = img.copy()
     h, w = img.shape[:2]
     pts = np.array([
@@ -94,6 +104,54 @@ def _disguise_mask(img: np.ndarray, rng: np.random.RandomState) -> np.ndarray:
     color = colors[rng.randint(len(colors))]
     cv2.fillPoly(out, [pts], tuple(int(c) for c in color))
     return out
+
+
+def _disguise_mask_realistic(img: np.ndarray,
+                             rng: np.random.RandomState) -> np.ndarray:
+    """MaskTheFace-style worn surgical/cloth mask: a curved top edge that rides
+    over the nose bridge, randomised vertical coverage, fabric pleats and ear
+    loops, plus mild shading. Opt-in (MDIE_REALISTIC_MASKS=1) so the default
+    pipeline is unchanged. Deterministic in ``rng``; preserves the 5-tuple +
+    bone-target contract (it only paints the lower face like the flat variant)."""
+    out = img.copy()
+    h, w = img.shape[:2]
+    # Randomised geometry: how high the mask rides and how wide it sits.
+    top = 0.46 + 0.10 * rng.rand()          # nose-bridge line
+    side = 0.06 + 0.06 * rng.rand()         # how far it wraps to the cheeks
+    bridge_dip = 0.04 + 0.05 * rng.rand()   # curve depth over the nose
+    cx = w * 0.5
+    # Curved top edge (samples a shallow parabola dipping at the nose bridge).
+    top_edge = []
+    for t in np.linspace(0.0, 1.0, 11):
+        x = w * (side + (1.0 - 2.0 * side) * t)
+        dip = bridge_dip * (1.0 - ((x - cx) / (w * 0.5)) ** 2)
+        top_edge.append([int(x), int(h * (top + max(dip, 0.0)))])
+    bottom = [
+        [int(w * (1.0 - side)), int(h * 0.74)],
+        [int(w * 0.74), int(h * 0.97)],
+        [int(cx), int(h * 0.99)],
+        [int(w * 0.26), int(h * 0.97)],
+        [int(w * side), int(h * 0.74)],
+    ]
+    pts = np.array(top_edge + bottom, dtype=np.int32)
+    fabrics = [(232, 232, 232), (120, 140, 205), (60, 80, 120),
+               (180, 200, 210), (40, 55, 75)]
+    color = fabrics[rng.randint(len(fabrics))]
+    cv2.fillPoly(out, [pts], tuple(int(c) for c in color))
+    # Horizontal pleats: a few subtly darker bands across the lower face.
+    y0, y1 = int(h * (top + 0.10)), int(h * 0.94)
+    shade = tuple(int(c * 0.82) for c in color)
+    for yy in range(y0, y1, max(int(h * 0.07), 2)):
+        cv2.line(out, (int(w * (side + 0.02)), yy),
+                 (int(w * (1.0 - side - 0.02)), yy), shade, 1)
+    # Ear loops: thin arcs from the upper mask corners toward the ears.
+    loop = tuple(int(c * 0.5) for c in color)
+    ly = int(h * (top + 0.02))
+    cv2.line(out, (int(w * side), ly), (0, int(h * (top - 0.06))), loop, 2)
+    cv2.line(out, (int(w * (1.0 - side)), ly),
+             (w, int(h * (top - 0.06))), loop, 2)
+    return out
+
 
 
 def _disguise_cap(img: np.ndarray, rng: np.random.RandomState) -> np.ndarray:

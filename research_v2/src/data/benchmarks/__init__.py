@@ -60,3 +60,6 @@ from . import calfw as _calfw        # noqa: F401,E402
 from . import agedb30 as _agedb30    # noqa: F401,E402
 from . import iiitd_surgery as _iiitd  # noqa: F401,E402
 from . import ijbc_occ as _ijbc     # noqa: F401,E402
+from . import rmfrd as _rmfrd        # noqa: F401,E402
+from . import arface as _arface      # noqa: F401,E402
+from . import yaleb as _yaleb        # noqa: F401,E402

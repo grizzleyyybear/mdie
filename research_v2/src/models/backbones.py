@@ -232,6 +232,64 @@ class IR50(nn.Module):
 
 
 # =============================================================================
+# 2b. IR-100 (deeper ArcFace backbone, from-scratch trainable)
+# =============================================================================
+
+class IR100(nn.Module):
+    """ArcFace IR-100 backbone (~65M params).
+
+    Identical wiring to :class:`IR50` (same ``_IRBlock``/``_SEBlock`` modules,
+    same dict output contract and ``return_maps`` behaviour). The only
+    difference is the deeper block plan ``[3, 13, 30, 3]`` vs IR-50's
+    ``[3, 4, 14, 3]``, so the captured attention maps stay fully compatible.
+    There are no public pretrained weights for this variant; it is trained
+    from scratch.
+    """
+
+    BLOCK_PLAN = [(64, 3), (128, 13), (256, 30), (512, 3)]
+
+    def __init__(self, embedding_dim: int = 512, dropout: float = 0.4,
+                 return_maps: bool = False):
+        super().__init__()
+        self.return_maps = return_maps
+        self.input_layer = nn.Sequential(
+            nn.Conv2d(3, 64, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(64), nn.PReLU(64))
+        layers = []
+        c_in = 64
+        for c_out, n in self.BLOCK_PLAN:
+            layers.append(_IRBlock(c_in, c_out, stride=2))
+            for _ in range(n - 1):
+                layers.append(_IRBlock(c_out, c_out, stride=1))
+            c_in = c_out
+        self.body = nn.Sequential(*layers)
+        self.output_layer = nn.Sequential(
+            nn.BatchNorm2d(512),
+            nn.Dropout(dropout),
+            nn.Flatten(),
+            nn.Linear(512 * 7 * 7, embedding_dim),
+            nn.BatchNorm1d(embedding_dim),
+        )
+
+    def forward(self, x) -> Dict[str, torch.Tensor]:
+        x = self.input_layer(x)
+        hi = None
+        for blk in self.body:
+            x = blk(x)
+            # capture the 256-channel 14x14 stage (group3) for finer attention
+            if x.shape[1] == 256 and x.shape[-1] == 14:
+                hi = x
+        feat = x
+        emb = F.normalize(self.output_layer(feat), dim=1)
+        out = {"embedding": emb}
+        if self.return_maps:
+            out["feature_maps"] = feat
+            if hi is not None:
+                out["feature_maps_hi"] = hi
+        return out
+
+
+# =============================================================================
 # 3. MobileFaceNet
 # =============================================================================
 
@@ -364,6 +422,7 @@ class PretrainedIResNet50(nn.Module):
 _BACKBONES = {
     "facenet": InceptionResnetV1,
     "ir50": IR50,
+    "ir100": IR100,
     "mobilefacenet": MobileFaceNet,
     "iresnet50_w600k": PretrainedIResNet50,
 }

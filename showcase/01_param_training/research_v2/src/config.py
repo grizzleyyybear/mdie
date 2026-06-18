@@ -7,6 +7,7 @@ script in the project sees the same values.
 
 from __future__ import annotations
 
+import os
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,9 +20,12 @@ import torch
 
 ROOT = Path(__file__).resolve().parents[1]              # research_v2/
 DATA_DIR = ROOT / "datasets_cache"
-RESULTS_DIR = ROOT / "results"
-FIGURES_DIR = ROOT / "figures"
-CKPT_DIR = ROOT / "checkpoints"
+# Output dirs default to research_v2/{results,figures}. They are env-overridable
+# (MDIE_RESULTS_DIR / MDIE_FIGURES_DIR) so parallel fan-out jobs can write to
+# isolated directories; unset = the original in-repo paths (nothing changes).
+RESULTS_DIR = Path(os.environ.get("MDIE_RESULTS_DIR", ROOT / "results"))
+FIGURES_DIR = Path(os.environ.get("MDIE_FIGURES_DIR", ROOT / "figures"))
+CKPT_DIR = Path(os.environ.get("MDIE_CKPT_DIR", ROOT / "checkpoints"))
 PAPER_DIR = ROOT / "paper"
 
 for d in (DATA_DIR, RESULTS_DIR, FIGURES_DIR, CKPT_DIR, PAPER_DIR):

@@ -32,7 +32,8 @@ from .config import (
 )
 from .data import (
     FaceClassificationDataset, IdentityBalancedSampler, MODIFICATION_TYPES,
-    build_face_dataset, build_verification_pairs, make_loaders, prepare_lfw,
+    build_face_dataset, build_train_dataset, build_verification_pairs,
+    make_loaders, prepare_lfw,
 )
 from .eval import (
     extract_embeddings_for_pairs, quick_verification_auc, region_sensitivity_map,
@@ -81,6 +82,8 @@ def main():
                      help="resume each baseline from its _last.pt snapshot")
     ap.add_argument("--quick", action="store_true",
                      help="4 epochs, smaller pair set (sanity-check run)")
+    ap.add_argument("--dataset", choices=["lfw", "casia"], default="lfw",
+                     help="training corpus (default: lfw — the safe fallback)")
     ap.add_argument("--baselines", nargs="+", default=BASELINE_REGISTRY,
                      help=f"subset of {BASELINE_REGISTRY}")
     args = ap.parse_args()
@@ -108,9 +111,8 @@ def main():
     print(f"  Manifest: {manifest.name}\n")
 
     # ----- 1. Dataset --------------------------------------------------------
-    print("[1/4] Preparing LFW ...")
-    lfw_dir = prepare_lfw(DATA_DIR, min_faces_per_person=8)
-    paths, labels, names = build_face_dataset(lfw_dir, min_imgs=4)
+    print(f"[1/4] Preparing dataset ({args.dataset}) ...")
+    paths, labels, names = build_train_dataset(args.dataset, DATA_DIR, min_imgs=4)
     n_classes = len(names)
     print(f"      {len(paths)} images, {n_classes} identities")
 

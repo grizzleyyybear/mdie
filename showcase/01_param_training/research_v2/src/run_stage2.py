@@ -28,7 +28,7 @@ from .config import (
 )
 from .data import (
     IdentityBalancedSampler, MODIFICATION_TYPES, PairedModificationDataset, build_face_dataset,
-    build_verification_pairs, make_loaders, prepare_lfw,
+    build_train_dataset, build_verification_pairs, make_loaders, prepare_lfw,
 )
 from .eval import (
     extract_embeddings_for_pairs, quick_verification_auc, score_pairs, summarize_run,
@@ -77,8 +77,21 @@ def main():
     ap.add_argument("--resume", action="store_true",
                      help="resume each variant from its _last.pt snapshot")
     ap.add_argument("--quick", action="store_true")
+    ap.add_argument("--dataset", choices=["lfw", "casia"], default="lfw",
+                     help="training corpus (default: lfw — the safe fallback)")
+    ap.add_argument("--backbone", choices=["ir50", "ir100"], default="ir50",
+                     help="from-scratch backbone when --no-pretrained-backbone "
+                          "is set (ignored when the pretrained w600k backbone is used)")
+    ap.add_argument("--ddp", action="store_true",
+                     help="enable DistributedDataParallel (launch with torchrun); "
+                          "single-GPU/CPU stays the default")
     ap.add_argument("--ablation", action="store_true",
                      help="also train no-RATA, no-AMD, no-ICCL variants")
+    ap.add_argument("--only-variant", dest="only_variant", default=None,
+                     choices=["MDIE-full", "MDIE-noRATA", "MDIE-noAMD",
+                              "MDIE-noICCL"],
+                     help="train/evaluate only this single variant (for per-model "
+                          "fan-out across GPUs); default: all selected variants")
     ap.add_argument("--pretrained-backbone", dest="pretrained_backbone",
                      action="store_true", default=True,
                      help="build MDIE on the production w600k IResNet50 backbone "
@@ -105,7 +118,15 @@ def main():
 
     seed_all()
     tune_for_device()
-    device = get_device()
+    if args.ddp:
+        from .train.ddp import setup_ddp
+        rank, world_size, local_rank = setup_ddp()
+        device = (torch.device(f"cuda:{local_rank}")
+                  if torch.cuda.is_available() else get_device())
+        print(f"  [ddp] rank {rank}/{world_size} local_rank {local_rank} device {device}")
+    else:
+        rank, world_size, local_rank = 0, 1, 0
+        device = get_device()
     from .trainer_utils import autodetect_workers, dump_run_manifest
     n_workers = autodetect_workers(args.workers)
     manifest = dump_run_manifest(RESULTS_DIR, run_name="stage2",
@@ -119,8 +140,8 @@ def main():
     print(f"  Manifest: {manifest.name}\n")
 
     # --- dataset (same protocol as Stage 1) ---------------------------------
-    lfw_dir = prepare_lfw(DATA_DIR, min_faces_per_person=8)
-    paths, labels, names = build_face_dataset(lfw_dir, min_imgs=4)
+    print(f"  Dataset: {args.dataset}")
+    paths, labels, names = build_train_dataset(args.dataset, DATA_DIR, min_imgs=4)
     n_classes = len(names)
     rng = np.random.RandomState(0)
     perm = rng.permutation(n_classes)
@@ -169,7 +190,10 @@ def main():
         return False
     missing = [p for p in train_paths if str(p) not in bone_targets]
     stale_version = bool(bone_targets) and cache_version != BONE_VERSION
-    if missing or (bone_targets and _stale_grid(bone_targets)) or stale_version:
+    need_build = bool(missing) or (bone_targets and _stale_grid(bone_targets)) or stale_version
+    # Under DDP only rank 0 builds the shared cache; the others wait on a
+    # barrier and then load the finished .npz from disk (avoids a write race).
+    if need_build and (not args.ddp or rank == 0):
         if missing:
             why = "missing entries"
         elif stale_version:
@@ -180,11 +204,14 @@ def main():
               f"{len(train_paths)} images (one-off) ...")
         try:
             build_cache(train_paths, bone_cache_path, grid=BONE_GRID)
-            bone_targets = load_target_cache(bone_cache_path)
         except Exception as e:  # noqa: BLE001
             print(f"  [landmarks] cache build failed ({e}); "
                   "training without bone supervision")
-            bone_targets = None
+    if args.ddp:
+        from .train.ddp import barrier
+        barrier()
+    if need_build:
+        bone_targets = load_target_cache(bone_cache_path) or None
     else:
         n_face = sum(1 for p in train_paths if bone_targets[str(p)].sum() > 0)
         print(f"  [landmarks] loaded bone targets for {len(train_paths)} images "
@@ -202,7 +229,8 @@ def main():
         try:
             bsamp = IdentityBalancedSampler(
                 train_lbls, classes_per_batch=cpb,
-                samples_per_class=args.samples_per_class)
+                samples_per_class=args.samples_per_class,
+                rank=local_rank, num_replicas=world_size)
             paired_loader = DataLoader(
                 paired_ds, batch_sampler=bsamp, num_workers=n_workers,
                 pin_memory=torch.cuda.is_available(),
@@ -234,14 +262,23 @@ def main():
             ("MDIE-noICCL", dict(use_region_prior=True,  use_amd=True), 0.0),
         ]
 
+    if args.only_variant is not None:
+        variants = [v for v in variants if v[0] == args.only_variant]
+        if not variants:
+            raise SystemExit(
+                f"--only-variant {args.only_variant} not in the selected set "
+                f"(did you forget --ablation?)")
+        print(f"  [fan-out] training only variant: {args.only_variant}")
+
     def _cname(v: str) -> str:
         """File-system safe checkpoint stem: 'MDIE-full' -> 'mdie_full'."""
         return v.lower().replace("-", "_")
 
     # Backbone configuration shared by every variant (train + eval rebuild).
-    backbone_kwargs = dict(pretrained_backbone=args.pretrained_backbone,
+    backbone_kwargs = dict(backbone=args.backbone,
+                           pretrained_backbone=args.pretrained_backbone,
                            freeze_backbone=args.freeze_backbone)
-    print(f"  Backbone: {'pretrained w600k IResNet50' if args.pretrained_backbone else 'from-scratch IR-50'}"
+    print(f"  Backbone: {'pretrained w600k IResNet50' if args.pretrained_backbone else 'from-scratch ' + args.backbone.upper()}"
           f"{'' if not args.pretrained_backbone else (' (frozen)' if args.freeze_backbone else f' (fine-tune x{args.backbone_lr_mult})')}")
 
     histories = {}
@@ -278,6 +315,8 @@ def main():
                         compile_model=args.compile_model,
                         backbone_lr_mult=args.backbone_lr_mult,
                         attn_lambda=args.attn_lambda,
+                        ddp=args.ddp,
+                        local_rank=local_rank,
                         val_auc_fn=(
                             (lambda m=model: quick_verification_auc(
                                 lambda x: m.encode(x)[0], val_auc_pairs, device,
@@ -290,6 +329,15 @@ def main():
             torch.cuda.empty_cache()
 
     plot_training_curves(histories, FIGURES_DIR / "stage2_training_curves.png")
+
+    # Under DDP, only rank 0 runs the (single-GPU) evaluation + figure/table
+    # generation; the other ranks synchronise and exit cleanly here.
+    if args.ddp:
+        from .train.ddp import barrier, cleanup_ddp
+        barrier()
+        if rank != 0:
+            cleanup_ddp()
+            return
 
     # --- evaluate every variant + the four baselines on every modification --
     print("\n[*] evaluating ...")
@@ -413,6 +461,9 @@ def main():
         json.dumps(json_safe, indent=2), encoding="utf-8")
 
     print(f"\n[done] Stage 2 artefacts under {FIGURES_DIR} and {RESULTS_DIR}")
+    if args.ddp:
+        from .train.ddp import cleanup_ddp
+        cleanup_ddp()
 
 
 def _eval_all_mods(encode, pair_set, device):

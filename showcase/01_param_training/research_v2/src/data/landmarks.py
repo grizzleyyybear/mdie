@@ -221,21 +221,69 @@ def load_target_cache(npz_path: str | Path) -> dict[str, np.ndarray]:
     return {k: targets[i] for i, k in enumerate(keys)}
 
 
+def _select_landmark_providers() -> tuple[list[str], int]:
+    """Pick the fastest available onnxruntime execution provider for landmarking.
+
+    Returns ``(providers, ctx_id)``. When a CUDA GPU is visible to both torch and
+    onnxruntime we use ``CUDAExecutionProvider`` (with a CPU fallback in the list)
+    and ``ctx_id=0`` — this turns the one-off CASIA bone-target cache (~494k imgs)
+    from hours on CPU into minutes on an A100. Otherwise we fall back to CPU
+    (``ctx_id=-1``), preserving the previous behaviour exactly.
+    """
+    try:
+        import onnxruntime as ort
+        avail = set(ort.get_available_providers())
+    except Exception:  # noqa: BLE001
+        return ["CPUExecutionProvider"], -1
+    use_gpu = False
+    if "CUDAExecutionProvider" in avail:
+        try:
+            import torch
+            use_gpu = bool(torch.cuda.is_available())
+        except Exception:  # noqa: BLE001
+            use_gpu = False
+    if use_gpu:
+        return ["CUDAExecutionProvider", "CPUExecutionProvider"], 0
+    return ["CPUExecutionProvider"], -1
+
+
 def build_cache(paths, out_npz: str | Path, grid: int = GRID,
-                det_size: int = 160, verbose: bool = True) -> dict[str, np.ndarray]:
+                det_size: int = 160, verbose: bool = True,
+                providers: list[str] | None = None,
+                ctx_id: int | None = None) -> dict[str, np.ndarray]:
     """Detect 68 landmarks for every image in ``paths`` and cache bone targets.
 
-    Uses InsightFace buffalo_l (detection + landmark_3d_68) on CPU. Images with
-    no detected face get an all-zero target (the attention loss ignores those).
+    Uses InsightFace buffalo_l (detection + landmark_3d_68). By default the
+    execution provider is auto-selected: CUDA when a GPU is available (fast,
+    needed for CASIA scale), CPU otherwise. Pass ``providers``/``ctx_id`` to
+    override. Images with no detected face get an all-zero target (the attention
+    loss ignores those).
     """
     import cv2
     from insightface.app import FaceAnalysis
 
     configure_onnxruntime_threads()
-    app = FaceAnalysis(name="buffalo_l",
-                       allowed_modules=["detection", "landmark_3d_68"],
-                       providers=["CPUExecutionProvider"])
-    app.prepare(ctx_id=-1, det_size=(det_size, det_size))
+    if providers is None or ctx_id is None:
+        auto_providers, auto_ctx = _select_landmark_providers()
+        providers = providers or auto_providers
+        ctx_id = auto_ctx if ctx_id is None else ctx_id
+    if verbose:
+        print(f"    [landmarks] providers={providers} ctx_id={ctx_id}", flush=True)
+    try:
+        app = FaceAnalysis(name="buffalo_l",
+                           allowed_modules=["detection", "landmark_3d_68"],
+                           providers=providers)
+        app.prepare(ctx_id=ctx_id, det_size=(det_size, det_size))
+    except Exception as e:  # noqa: BLE001
+        # GPU provider can fail if onnxruntime-gpu / CUDA EP is misconfigured;
+        # fall back to CPU so the cache build still completes.
+        if verbose:
+            print(f"    [landmarks] provider {providers} failed ({e}); "
+                  "falling back to CPU", flush=True)
+        app = FaceAnalysis(name="buffalo_l",
+                           allowed_modules=["detection", "landmark_3d_68"],
+                           providers=["CPUExecutionProvider"])
+        app.prepare(ctx_id=-1, det_size=(det_size, det_size))
 
     keys, targets = [], []
     n_ok = 0
