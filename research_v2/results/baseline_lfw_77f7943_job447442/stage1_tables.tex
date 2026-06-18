@@ -1,0 +1,39 @@
+% =================== Table 1: Overall verification ===================
+\begin{table}[t]
+\centering
+\caption{Overall verification performance on the LFW-modified benchmark suite. AUC: area under ROC; EER: equal error rate; TAR@FAR=$10^{-3}$: true-accept rate at false-accept rate $10^{-3}$.}
+\label{tab:overall}
+\begin{tabular}{lcccc}
+\hline
+Model & AUC $\uparrow$ & EER $\downarrow$ & TAR@$10^{-2}$ $\uparrow$ & TAR@$10^{-3}$ $\uparrow$ \\
+\hline
+facenet & 0.6208 & 0.4097 & 0.0684 & 0.0178 \\
+arcface & 0.8004 & 0.2778 & 0.2087 & 0.0901 \\
+cosface & 0.7953 & 0.2825 & 0.2093 & 0.0818 \\
+mobilefacenet & 0.7426 & 0.3272 & 0.1462 & 0.0537 \\
+\hline
+\end{tabular}
+\end{table}
+
+% =================== Table 2: Per-modification AUC ===================
+\begin{table*}[t]
+\centering
+\caption{Per-modification AUC. The proposed MDIE shows the smallest AUC drop across modification types.}
+\label{tab:permod}
+\begin{tabular}{lcccc}
+\hline
+Modification & facenet & arcface & cosface & mobilefacenet \\
+\hline
+adversarial & 0.6898 & 0.8920 & 0.8867 & 0.8457 \\
+aging & 0.6952 & 0.8784 & 0.8736 & 0.8124 \\
+clean & 0.6908 & 0.8931 & 0.8878 & 0.8608 \\
+disguise_cap & 0.5787 & 0.6643 & 0.6795 & 0.6342 \\
+disguise_glasses & 0.5480 & 0.7506 & 0.7844 & 0.6597 \\
+disguise_mask & 0.5977 & 0.7323 & 0.7204 & 0.6953 \\
+harsh_shadow & 0.6385 & 0.7962 & 0.7607 & 0.7552 \\
+low_light & 0.6213 & 0.7914 & 0.7943 & 0.7446 \\
+occlusion_random & 0.6659 & 0.8428 & 0.8370 & 0.6779 \\
+over_exposure & 0.6299 & 0.7618 & 0.7334 & 0.7564 \\
+\hline
+\end{tabular}
+\end{table*}
