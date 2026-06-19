@@ -27,6 +27,7 @@ hpc/
 ├── env_setup.sh               once: install Miniconda + create mdie env
 ├── stage_datasets.sh          once: download LFW + MFR2 + CALFW + AgeDB-30
 ├── stage_casia.sh             laptop: extract CASIA RecordIO -> ImageFolder + tar
+├── fetch_casia_kaggle.sh      login node: download CASIA from Kaggle directly
 ├── slurm_quick.sh             4-epoch smoke run on 1 A100 (~30 min)
 ├── slurm_stage1.sh            Stage-1 baselines on 1 A100  (~3–4 h)
 ├── slurm_stage2.sh            Stage-2 MDIE + ablation on 1 A100 (~5–6 h)
@@ -129,7 +130,17 @@ Drops you onto a compute node. Inside the shell, remember to
 Everything above is unchanged and stays the default (LFW, 1 GPU). The scale-up
 path is fully additive — enable it with flags/env, nothing else breaks.
 
-**a. Stage CASIA-WebFace** (run on the laptop, then scp up — PARAM has no net):
+**a. Stage CASIA-WebFace.** Two routes — pick whichever is convenient:
+
+*Route A — directly on the PARAM login node (it has internet, like `git pull`):*
+
+```bash
+# one-time Kaggle auth: drop kaggle.json at ~/.kaggle/kaggle.json (chmod 600)
+bash hpc/fetch_casia_kaggle.sh        # downloads debarghamitraroy/casia-webface,
+                                      # symlinks it into datasets_cache/casia
+```
+
+*Route B — stage on the laptop, then scp up (PARAM has no net for this route):*
 
 ```bash
 # laptop: produce a plain ImageFolder tarball (no mxnet needed on PARAM)
