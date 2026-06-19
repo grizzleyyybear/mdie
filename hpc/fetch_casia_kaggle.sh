@@ -60,10 +60,10 @@ if ! python -c "import kagglehub" 2>/dev/null; then
     pip install -q kagglehub || { echo "[casia] ERROR: pip install kagglehub failed."; exit 1; }
 fi
 
-# ---- Download + locate the ImageFolder root -------------------------------
+# ---- Download, then resolve to either a RecordIO dir or an ImageFolder ------
 echo "[casia] downloading '$SLUG' via kagglehub into $KAGGLEHUB_CACHE ..."
-echo "        (~5 GB; resumes if interrupted — just re-run this script)"
-IMAGEFOLDER_ROOT="$(python - "$SLUG" <<'PY'
+echo "        (~3 GB; resumes if interrupted — just re-run this script)"
+RESOLVED="$(python - "$SLUG" <<'PY'
 import os, sys
 import kagglehub
 
@@ -71,6 +71,23 @@ slug = sys.argv[1]
 path = kagglehub.dataset_download(slug)   # auto-resumes, returns extracted dir
 
 IMG_EXT = (".jpg", ".jpeg", ".png")
+
+def find_recordio(root):
+    """Return the dir containing train.rec + train.idx, if any (BFS, depth<=4)."""
+    frontier, depth = [root], 0
+    while frontier and depth <= 4:
+        nxt = []
+        for d in frontier:
+            try:
+                entries = list(os.scandir(d))
+            except OSError:
+                continue
+            names = {e.name for e in entries if e.is_file()}
+            if "train.rec" in names and "train.idx" in names:
+                return d
+            nxt += [e.path for e in entries if e.is_dir()]
+        frontier, depth = nxt, depth + 1
+    return None
 
 def has_direct_image(d):
     try:
@@ -82,7 +99,6 @@ def has_direct_image(d):
     return False
 
 def identity_score(d, cap=40):
-    """How many immediate subdirs of d directly contain an image (capped)."""
     c = 0
     try:
         for sub in os.scandir(d):
@@ -94,8 +110,13 @@ def identity_score(d, cap=40):
         pass
     return c
 
-# BFS to depth 3 from the download path; pick the dir whose immediate children
-# look most like per-identity image folders.
+# Prefer RecordIO (this Kaggle mirror ships InsightFace train.rec/train.idx).
+rec = find_recordio(path)
+if rec:
+    print("REC\t" + os.path.realpath(rec))
+    sys.exit(0)
+
+# Else hunt for a per-identity ImageFolder (BFS depth 3).
 best_dir, best_score = path, identity_score(path)
 frontier, depth = [path], 0
 while frontier and depth < 3:
@@ -114,29 +135,41 @@ while frontier and depth < 3:
 
 if best_score < 5:
     sys.stderr.write(
-        f"[casia] could not find a per-identity ImageFolder under {path} "
+        f"[casia] found neither RecordIO nor an ImageFolder under {path} "
         f"(best score {best_score}). Inspect it manually.\n")
     sys.exit(2)
-
-print(os.path.realpath(best_dir))
+print("IMG\t" + os.path.realpath(best_dir))
 PY
 )"
 
-if [[ -z "$IMAGEFOLDER_ROOT" || ! -d "$IMAGEFOLDER_ROOT" ]]; then
-    echo "[casia] ERROR: failed to resolve the ImageFolder root."
+KIND="${RESOLVED%%$'\t'*}"
+SRC="${RESOLVED#*$'\t'}"
+if [[ -z "$KIND" || -z "$SRC" || ! -d "$SRC" ]]; then
+    echo "[casia] ERROR: failed to resolve the dataset payload."
     exit 1
 fi
-echo "[casia] ImageFolder root: $IMAGEFOLDER_ROOT"
 
-# ---- Symlink into the path the trainer reads ------------------------------
-[[ -L "$DST" ]] && rm -f "$DST"
-if [[ -e "$DST" ]]; then
-    # An empty real dir from a prior partial run — safe to replace.
-    rmdir "$DST" 2>/dev/null || {
-        echo "[casia] ERROR: $DST exists and is not empty/symlink. Move it aside first."; exit 1; }
+if [[ "$KIND" == "REC" ]]; then
+    # ---- RecordIO -> ImageFolder (pure-python, no mxnet) -------------------
+    echo "[casia] InsightFace RecordIO detected at $SRC"
+    echo "[casia] extracting to ImageFolder at $DST (pure-python, no mxnet) ..."
+    [[ -L "$DST" ]] && rm -f "$DST"
+    TMP_OUT="$DST.partial"
+    rm -rf "$TMP_OUT"
+    PYTHONPATH="$REPO_ROOT" python "$REPO_ROOT/hpc/recordio_to_imagefolder.py" "$SRC" "$TMP_OUT"
+    rm -rf "$DST" 2>/dev/null || true
+    mv "$TMP_OUT" "$DST"   # atomic on the same filesystem -> never a partial $DST
+else
+    # ---- ImageFolder -> symlink into place --------------------------------
+    echo "[casia] ImageFolder root: $SRC"
+    [[ -L "$DST" ]] && rm -f "$DST"
+    if [[ -e "$DST" ]]; then
+        rmdir "$DST" 2>/dev/null || {
+            echo "[casia] ERROR: $DST exists and is not empty/symlink. Move it aside first."; exit 1; }
+    fi
+    ln -s "$SRC" "$DST"
+    echo "[casia] linked $DST -> $SRC"
 fi
-ln -s "$IMAGEFOLDER_ROOT" "$DST"
-echo "[casia] linked $DST -> $IMAGEFOLDER_ROOT"
 
 # ---- Validate via the project loader --------------------------------------
 echo "[casia] verifying with the project loader ..."

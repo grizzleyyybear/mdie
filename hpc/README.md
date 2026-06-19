@@ -28,6 +28,7 @@ hpc/
 ├── stage_datasets.sh          once: download LFW + MFR2 + CALFW + AgeDB-30
 ├── stage_casia.sh             laptop: extract CASIA RecordIO -> ImageFolder + tar
 ├── fetch_casia_kaggle.sh      login node: download CASIA from Kaggle directly
+├── recordio_to_imagefolder.py extract InsightFace .rec/.idx -> ImageFolder (no mxnet)
 ├── slurm_quick.sh             4-epoch smoke run on 1 A100 (~30 min)
 ├── slurm_stage1.sh            Stage-1 baselines on 1 A100  (~3–4 h)
 ├── slurm_stage2.sh            Stage-2 MDIE + ablation on 1 A100 (~5–6 h)
@@ -136,8 +137,11 @@ path is fully additive — enable it with flags/env, nothing else breaks.
 
 ```bash
 # one-time Kaggle auth: drop kaggle.json at ~/.kaggle/kaggle.json (chmod 600)
-bash hpc/fetch_casia_kaggle.sh        # downloads debarghamitraroy/casia-webface,
-                                      # symlinks it into datasets_cache/casia
+bash hpc/fetch_casia_kaggle.sh        # downloads debarghamitraroy/casia-webface;
+                                      # this mirror ships InsightFace RecordIO, so
+                                      # the script extracts train.rec/.idx to an
+                                      # ImageFolder (pure-python, no mxnet) at
+                                      # datasets_cache/casia
 ```
 
 *Route B — stage on the laptop, then scp up (PARAM has no net for this route):*
