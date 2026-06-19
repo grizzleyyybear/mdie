@@ -85,36 +85,35 @@ def _img_ext(body: bytes) -> str:
     return ".jpg"
 
 
+def _is_image(body: bytes) -> bool:
+    """True if body starts with a JPEG or PNG magic signature."""
+    return body[:3] == b"\xff\xd8\xff" or body[:8] == b"\x89PNG\r\n\x1a\n"
+
+
 def extract(rec_dir: Path, out_dir: Path) -> int:
     idx = load_idx(rec_dir / "train.idx")
     if not idx:
         raise SystemExit(f"empty/missing index at {rec_dir / 'train.idx'}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # InsightFace packs ~490k image records (flag==0, single float identity
+    # label, JPEG body) followed by per-identity annotation records (flag>0,
+    # empty body). Record 0's label points at where the annotation records
+    # begin, NOT the image range — so rather than rely on that convention we
+    # iterate every record and keep only those whose body is a real image.
+    # Annotation/header records have non-image bodies and are skipped.
+    n = 0
+    skipped = 0
     with open(rec_dir / "train.rec", "rb") as rec:
-        keys = sorted(idx.keys())
-        # Record 0 usually holds the (start, end) sample range as a 2-float label.
-        sample_indices = None
-        if 0 in idx:
-            try:
-                _flag0, label0, _ = unpack(read_record(rec, idx[0]))
-                if isinstance(label0, tuple) and len(label0) >= 2 and label0[1] > label0[0]:
-                    sample_indices = range(int(label0[0]), int(label0[1]))
-            except Exception:
-                sample_indices = None
-        if sample_indices is None:
-            sample_indices = [k for k in keys if k != 0]
-
-        n = 0
-        for i in sample_indices:
-            off = idx.get(i)
-            if off is None:
-                continue
+        for i in sorted(idx.keys()):
+            off = idx[i]
             try:
                 _flag, label, body = unpack(read_record(rec, off))
             except Exception:
+                skipped += 1
                 continue
-            if not body:
+            if not _is_image(body):
+                skipped += 1
                 continue
             d = out_dir / f"{_label_to_int(label):07d}"
             d.mkdir(exist_ok=True)
@@ -125,6 +124,8 @@ def extract(rec_dir: Path, out_dir: Path) -> int:
             n += 1
             if n % 50000 == 0:
                 print(f"  [recordio] wrote {n} images ...", flush=True)
+    if skipped:
+        print(f"  [recordio] skipped {skipped} non-image records (headers/annotations)")
     return n
 
 
