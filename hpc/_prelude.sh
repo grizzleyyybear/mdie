@@ -50,6 +50,27 @@ export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-${SLURM_NTASKS_PER_NODE:-16}}"
 export MKL_NUM_THREADS="$OMP_NUM_THREADS"
 
+# onnxruntime-gpu (used to build the one-off CASIA landmark cache) needs cuDNN 9
+# + cuBLAS at runtime. The torch CUDA wheels already bundle them under
+# site-packages/nvidia/*/lib, but they're not on LD_LIBRARY_PATH by default, so
+# ORT fails to load libonnxruntime_providers_cuda.so and SILENTLY falls back to
+# CPU — turning the ~390k-image cache from minutes on the A100 into ~16 h (which
+# blows past the walltime). Prepend the bundled NVIDIA lib dirs so the GPU
+# provider loads. Harmless when the libs are absent (block is a no-op).
+_nvidia_libs="$(python - <<'PY' 2>/dev/null
+import glob, importlib.util, os
+spec = importlib.util.find_spec("nvidia")
+locs = list(spec.submodule_search_locations) if spec and spec.submodule_search_locations else []
+dirs = sorted({os.path.dirname(p) for base in locs
+               for p in glob.glob(os.path.join(base, "*", "lib", "*.so*"))})
+print(":".join(dirs))
+PY
+)"
+if [[ -n "$_nvidia_libs" ]]; then
+    export LD_LIBRARY_PATH="$_nvidia_libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    echo "[prelude] added bundled NVIDIA libs (cuDNN/cuBLAS) to LD_LIBRARY_PATH for onnxruntime-gpu"
+fi
+
 # CDAC proxy for outbound HTTP from compute nodes. Enabled by default unless
 # explicitly disabled with PARAM_USE_PROXY=0.
 PARAM_PROXY="${PARAM_PROXY:-http://proxy-10g.10g.siddhi.param:9090}"
