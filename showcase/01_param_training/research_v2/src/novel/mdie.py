@@ -89,16 +89,19 @@ class MDIE(nn.Module):
             # so interpretability is unaffected.
             if self.residual_fusion:
                 # Identity-initialised residual: emb = norm(native + gate * delta),
-                # with delta = W[attn_emb; native] and W zero-initialised and the
-                # gate a learnable scalar starting at 0. At init delta*gate == 0,
-                # so the deployed embedding is exactly the native (production)
-                # embedding; training grows the gated residual only where the
-                # attention pathway helps. Preserves production accuracy by
-                # construction and adds occlusion robustness on top.
+                # delta = W[attn_emb; native]. W is zero-initialised so at init
+                # delta == 0 and the deployed embedding is EXACTLY the native
+                # (production) embedding. The gate is initialised to 1 (not 0):
+                # zero-initialising BOTH W and the gate would make the residual a
+                # dead branch (grad to the gate is proportional to delta==0 and
+                # grad to W is proportional to gate==0), so it could never turn
+                # on. With W=0, gate=1 the projection receives a live gradient on
+                # the very first step and grows the occlusion-robust correction,
+                # while parity-at-init is still exact (delta==0).
                 self.fuse_residual = nn.Linear(2 * embedding_dim, embedding_dim,
                                                bias=False)
                 nn.init.zeros_(self.fuse_residual.weight)
-                self.res_gate = nn.Parameter(torch.zeros(1))
+                self.res_gate = nn.Parameter(torch.ones(1))
             else:
                 self.fuse = nn.Sequential(
                     nn.Linear(2 * embedding_dim, embedding_dim, bias=False),
