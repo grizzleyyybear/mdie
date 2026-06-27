@@ -393,10 +393,24 @@ def build_cache(paths, out_npz: str | Path, grid: int = GRID,
 
     out_npz = Path(out_npz)
     out_npz.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(out_npz, keys=np.array(keys),
-                        targets=np.stack(targets).astype(np.float32),
-                        geoms=np.stack(geoms).astype(np.float32),
-                        version=np.int64(TARGET_VERSION))
+    # Atomic write: build into a temp file and os.replace() it into place, so a
+    # rebuild that is killed mid-write (SLURM walltime / OOM / crash) can never
+    # truncate or corrupt a pre-existing cache — the old .npz stays intact until
+    # the new one is fully flushed. os.replace is atomic on the same filesystem.
+    import os as _os
+    tmp_npz = out_npz.with_name(out_npz.name + f".tmp{_os.getpid()}.npz")
+    try:
+        np.savez_compressed(tmp_npz, keys=np.array(keys),
+                            targets=np.stack(targets).astype(np.float32),
+                            geoms=np.stack(geoms).astype(np.float32),
+                            version=np.int64(TARGET_VERSION))
+        _os.replace(tmp_npz, out_npz)
+    finally:
+        if tmp_npz.exists():
+            try:
+                tmp_npz.unlink()
+            except OSError:
+                pass
     if verbose:
         print(f"    cached {len(keys)} targets ({n_ok} with a detected face) "
               f"-> {out_npz}", flush=True)

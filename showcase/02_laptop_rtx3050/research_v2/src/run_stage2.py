@@ -217,7 +217,25 @@ def main():
     from .data.landmarks import (build_cache, load_target_cache, load_geom_cache,
                                  load_cache_version, GRID as BONE_GRID,
                                  TARGET_VERSION as BONE_VERSION)
-    bone_cache_path = Path(DATA_DIR) / "bone_targets.npz"
+    # Per-dataset cache file so training on a new dataset (e.g. glint360k) can
+    # NEVER overwrite another dataset's hard-won landmark cache (e.g. the CASIA
+    # cache, hours of GPU detection). Legacy single-file caches are preserved:
+    # if the old shared bone_targets.npz covers this dataset's images, it is
+    # COPIED to the per-dataset name (the original is kept as a backup) so the
+    # existing cache is reused without a rebuild and without being mutated.
+    bone_cache_path = Path(DATA_DIR) / f"bone_targets_{args.dataset}.npz"
+    legacy_cache_path = Path(DATA_DIR) / "bone_targets.npz"
+    if not bone_cache_path.exists() and legacy_cache_path.exists() \
+            and (not args.ddp or rank == 0):
+        legacy = load_target_cache(legacy_cache_path)
+        if legacy and all(str(p) in legacy for p in train_paths):
+            import shutil
+            shutil.copy2(legacy_cache_path, bone_cache_path)
+            print(f"  [landmarks] migrated legacy cache -> {bone_cache_path.name} "
+                  f"(original {legacy_cache_path.name} kept as backup)")
+    if args.ddp:
+        from .train.ddp import barrier as _barrier
+        _barrier()
     bone_targets = load_target_cache(bone_cache_path)
     cache_version = load_cache_version(bone_cache_path)
     # Rebuild if any path is missing, the cached grid resolution is stale
