@@ -71,7 +71,26 @@ MAX_ATTEMPTS="${MDIE_MAX_ATTEMPTS:-8}"
 echo "[failsafe] attempt $ATTEMPT/$MAX_ATTEMPTS  budget=${MDIE_TRAIN_MAX_SECONDS}s  walltime=08:00:00"
 
 echo "[specialist] dataset=$DATASET backbone=$BACKBONE epochs=$EPOCHS_S2 batch=$BATCH lr=$LR realistic_aug=$MDIE_REALISTIC_AUG"
-echo "[specialist] FROZEN pretrained w600k backbone + identity-init residual fusion"
+
+# Backbone policy:
+#   default            : FROZEN pretrained w600k + identity-init residual fusion.
+#                        Deployed embedding starts at production parity; clean
+#                        benchmarks are capped at parity, occlusion improves.
+#   UNFREEZE=1          : lightly fine-tune the backbone (small LR mult) so a
+#                        large/diverse set (e.g. Glint360K) can push past
+#                        production on clean too, while residual fusion keeps the
+#                        occlusion gains. Only sound on a big set -- on a small
+#                        set this forgets (which is exactly what hurt the CASIA
+#                        run). Not guaranteed to beat production; it is the
+#                        honest best shot at an overall win.
+BACKBONE_FLAGS="--freeze-backbone"
+BB_LR_MULT="${BB_LR_MULT:-0.05}"
+if [[ "${UNFREEZE:-0}" == "1" ]]; then
+    BACKBONE_FLAGS="--backbone-lr-mult $BB_LR_MULT"
+    echo "[specialist] UNFREEZE=1 -> fine-tuning backbone at lr_mult=$BB_LR_MULT (ambitious overall-win run)"
+else
+    echo "[specialist] FROZEN pretrained w600k backbone + identity-init residual fusion"
+fi
 echo "[specialist] outputs -> $MDIE_RESULTS_DIR"
 
 set +e
@@ -79,7 +98,7 @@ python -m research_v2.src.run_stage2 \
     --dataset "$DATASET" \
     --backbone "$BACKBONE" \
     --pretrained-backbone \
-    --freeze-backbone \
+    $BACKBONE_FLAGS \
     --residual-fusion \
     --epochs "$EPOCHS_S2" \
     --batch "$BATCH" \
@@ -101,7 +120,7 @@ if [[ "$RC" == "64" ]]; then
     if [[ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]]; then
         SUBMIT_SCRIPT="${SLURM_SUBMIT_DIR:-$REPO_ROOT}/hpc/slurm_train_specialist.sh"
         echo "[failsafe] budget reached; resubmitting (attempt $((ATTEMPT+1))/$MAX_ATTEMPTS)"
-        sbatch --export=ALL,MDIE_ATTEMPT=$((ATTEMPT+1)),MDIE_MAX_ATTEMPTS=$MAX_ATTEMPTS,MDIE_TRAIN_MAX_SECONDS=$MDIE_TRAIN_MAX_SECONDS,DATASET=$DATASET,BACKBONE=$BACKBONE,EPOCHS_S2=$EPOCHS_S2,BATCH=$BATCH,LR=$LR,VAL_PAIRS=$VAL_PAIRS,CPB=$CPB,SPC=$SPC,REALISTIC_AUG=$MDIE_REALISTIC_AUG \
+        sbatch --export=ALL,MDIE_ATTEMPT=$((ATTEMPT+1)),MDIE_MAX_ATTEMPTS=$MAX_ATTEMPTS,MDIE_TRAIN_MAX_SECONDS=$MDIE_TRAIN_MAX_SECONDS,DATASET=$DATASET,BACKBONE=$BACKBONE,EPOCHS_S2=$EPOCHS_S2,BATCH=$BATCH,LR=$LR,VAL_PAIRS=$VAL_PAIRS,CPB=$CPB,SPC=$SPC,REALISTIC_AUG=$MDIE_REALISTIC_AUG,UNFREEZE=${UNFREEZE:-0},BB_LR_MULT=$BB_LR_MULT \
             "$SUBMIT_SCRIPT"
     else
         echo "[failsafe] max attempts reached; stopping."
