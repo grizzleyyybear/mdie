@@ -1,1 +1,100 @@
-#!/bin/bash\n# ============================================================================\n#  MDIE - real-benchmark eval for the CASIA-trained fan-out checkpoints.\n#\n#  Scores the CASIA MDIE checkpoint(s) under research_v2/checkpoints/fanout/\n#  against the REAL worn-occlusion / aging benchmarks (MFR2 real masks,\n#  MeGlass real glasses, CALFW + AgeDB-30 aging) and, by default, the strong\n#  production reference InsightFace-w600k_r50 (WebFace12M) on the same axes.\n#  This is the synthetic->real transfer story: how the CASIA-scale MDIE holds\n#  up on genuinely occluded faces vs a production model.\n#\n#  Inference-only. Walltime < 1 h on 1 A100. Batch-only (no srun needed):\n#       sbatch hpc/slurm_eval_casia.sh\n#\n#  Knobs (all optional, via --export or env):\n#    VARIANT             which fan-out checkpoint is the headline (default mdie_full)\n#    EVAL_ALL_VARIANTS=1 also score the other 3 ablation variants (per-variant CSVs)\n#    BENCHMARKS="..."    space list (default: mfr2 meglass calfw agedb30)\n#    BASELINES="..."     external baselines for the headline plot\n#                        (default: insightface_w600k_r50)\n#\n#  Outputs land under research_v2/results/casia_real/ :\n#    real_benchmarks_casia.csv   headline table (MDIE-full + baselines)\n#    roc_<bench>.pdf/png         combined ROC curves (figures/casia_real/)\n#    <variant>/real_benchmarks_<variant>.csv   per-variant ablation (if enabled)\n# ============================================================================\n#SBATCH -N 1\n#SBATCH --ntasks-per-node=16\n#SBATCH --gres=gpu:A100-SXM4:1\n#SBATCH --time=01:30:00\n#SBATCH --job-name=mdie-evalc\n#SBATCH --error=job.%J.err\n#SBATCH --output=job.%J.out\n#SBATCH --partition=dgxnp\n\n# shellcheck source=./_prelude.sh\nif [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then\n    source "$SLURM_SUBMIT_DIR/hpc/_prelude.sh"\nelse\n    source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/_prelude.sh"\nfi\n\nBENCHMARKS="${BENCHMARKS:-mfr2 meglass calfw agedb30}"\nBASELINES="${BASELINES:-insightface_w600k_r50}"\nVARIANT="${VARIANT:-mdie_full}"\n\nFANOUT="$REPO_ROOT/research_v2/checkpoints/fanout"\nOUTDIR="$REPO_ROOT/research_v2/results/casia_real"\nmkdir -p "$OUTDIR"\n\nif [[ ! -f "$FANOUT/$VARIANT/$VARIANT.pt" ]]; then\n    echo "[eval-casia] ERROR: headline checkpoint not found:" >&2\n    echo "             $FANOUT/$VARIANT/$VARIANT.pt" >&2\n    echo "             (did the fan-out training finish? check research_v2/checkpoints/fanout/)" >&2\n    exit 2\nfi\n\necho "[eval-casia] headline variant : $VARIANT"\necho "[eval-casia] baselines        : $BASELINES"\necho "[eval-casia] benchmarks       : $BENCHMARKS"\necho "[eval-casia] outputs          : $OUTDIR"\n\n# --- Headline run: CASIA MDIE-full + production baselines on the SAME axes ---\n# MDIE_EVAL_VARIANT makes the mdie loader pick this variant's .pt and report it\n# under its own column name; MDIE_CKPT_DIR points the loader at its fan-out dir.\nexport MDIE_CKPT_DIR="$FANOUT/$VARIANT"\nexport MDIE_EVAL_VARIANT="$VARIANT"\nexport MDIE_RESULTS_DIR="$OUTDIR"\nexport MDIE_FIGURES_DIR="$REPO_ROOT/research_v2/figures/casia_real"\nmkdir -p "$MDIE_FIGURES_DIR"\n\n# shellcheck disable=SC2086\npython -m research_v2.src.eval.run_real_benchmarks \\n    --models mdie $BASELINES \\n    --benchmarks $BENCHMARKS \\n    --out "$OUTDIR/real_benchmarks_casia.csv"\n\n# --- Optional: the other 3 ablation variants (per-variant CSVs) --------------\nif [[ "${EVAL_ALL_VARIANTS:-0}" == "1" ]]; then\n    for V in mdie_norata mdie_noamd mdie_noiccl; do\n        CK="$FANOUT/$V/$V.pt"\n        if [[ ! -f "$CK" ]]; then\n            echo "[eval-casia] skip $V (no checkpoint at $CK)"\n            continue\n        fi\n        echo "[eval-casia] ablation variant: $V"\n        export MDIE_CKPT_DIR="$FANOUT/$V"\n        export MDIE_EVAL_VARIANT="$V"\n        export MDIE_RESULTS_DIR="$OUTDIR/$V"\n        export MDIE_FIGURES_DIR="$REPO_ROOT/research_v2/figures/casia_real/$V"\n        mkdir -p "$MDIE_RESULTS_DIR" "$MDIE_FIGURES_DIR"\n        # shellcheck disable=SC2086\n        python -m research_v2.src.eval.run_real_benchmarks \\n            --models mdie \\n            --benchmarks $BENCHMARKS \\n            --out "$OUTDIR/$V/real_benchmarks_$V.csv"\n    done\nfi\n\necho "[eval-casia] Finished at `date`"\n
+#!/bin/bash
+# ============================================================================
+#  MDIE - real-benchmark eval for the CASIA-trained fan-out checkpoints.
+#
+#  Scores the CASIA MDIE checkpoint(s) under research_v2/checkpoints/fanout/
+#  against the REAL worn-occlusion / aging benchmarks (MFR2 real masks,
+#  MeGlass real glasses, CALFW + AgeDB-30 aging) and, by default, the strong
+#  production reference InsightFace-w600k_r50 (WebFace12M) on the same axes.
+#  This is the synthetic->real transfer story: how the CASIA-scale MDIE holds
+#  up on genuinely occluded faces vs a production model.
+#
+#  Inference-only. Walltime < 1 h on 1 A100. Batch-only (no srun needed):
+#       sbatch hpc/slurm_eval_casia.sh
+#
+#  Knobs (all optional, via --export or env):
+#    VARIANT             which fan-out checkpoint is the headline (default mdie_full)
+#    EVAL_ALL_VARIANTS=1 also score the other 3 ablation variants (per-variant CSVs)
+#    BENCHMARKS="..."    space list (default: mfr2 meglass calfw agedb30)
+#    BASELINES="..."     external baselines for the headline plot
+#                        (default: insightface_w600k_r50)
+#
+#  Outputs land under research_v2/results/casia_real/ :
+#    real_benchmarks_casia.csv   headline table (MDIE-full + baselines)
+#    roc_<bench>.pdf/png         combined ROC curves (figures/casia_real/)
+#    <variant>/real_benchmarks_<variant>.csv   per-variant ablation (if enabled)
+# ============================================================================
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=16
+#SBATCH --gres=gpu:A100-SXM4:1
+#SBATCH --time=01:30:00
+#SBATCH --job-name=mdie-evalc
+#SBATCH --error=job.%J.err
+#SBATCH --output=job.%J.out
+#SBATCH --partition=dgxnp
+
+# shellcheck source=./_prelude.sh
+if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+    source "$SLURM_SUBMIT_DIR/hpc/_prelude.sh"
+else
+    source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/_prelude.sh"
+fi
+
+BENCHMARKS="${BENCHMARKS:-mfr2 meglass calfw agedb30}"
+BASELINES="${BASELINES:-insightface_w600k_r50}"
+VARIANT="${VARIANT:-mdie_full}"
+
+FANOUT="$REPO_ROOT/research_v2/checkpoints/fanout"
+OUTDIR="$REPO_ROOT/research_v2/results/casia_real"
+mkdir -p "$OUTDIR"
+
+if [[ ! -f "$FANOUT/$VARIANT/$VARIANT.pt" ]]; then
+    echo "[eval-casia] ERROR: headline checkpoint not found:" >&2
+    echo "             $FANOUT/$VARIANT/$VARIANT.pt" >&2
+    echo "             (did the fan-out training finish? check research_v2/checkpoints/fanout/)" >&2
+    exit 2
+fi
+
+echo "[eval-casia] headline variant : $VARIANT"
+echo "[eval-casia] baselines        : $BASELINES"
+echo "[eval-casia] benchmarks       : $BENCHMARKS"
+echo "[eval-casia] outputs          : $OUTDIR"
+
+# --- Headline run: CASIA MDIE-full + production baselines on the SAME axes ---
+# MDIE_EVAL_VARIANT makes the mdie loader pick this variant's .pt and report it
+# under its own column name; MDIE_CKPT_DIR points the loader at its fan-out dir.
+export MDIE_CKPT_DIR="$FANOUT/$VARIANT"
+export MDIE_EVAL_VARIANT="$VARIANT"
+export MDIE_RESULTS_DIR="$OUTDIR"
+export MDIE_FIGURES_DIR="$REPO_ROOT/research_v2/figures/casia_real"
+mkdir -p "$MDIE_FIGURES_DIR"
+
+# shellcheck disable=SC2086
+python -m research_v2.src.eval.run_real_benchmarks \
+    --models mdie $BASELINES \
+    --benchmarks $BENCHMARKS \
+    --out "$OUTDIR/real_benchmarks_casia.csv"
+
+# --- Optional: the other 3 ablation variants (per-variant CSVs) --------------
+if [[ "${EVAL_ALL_VARIANTS:-0}" == "1" ]]; then
+    for V in mdie_norata mdie_noamd mdie_noiccl; do
+        CK="$FANOUT/$V/$V.pt"
+        if [[ ! -f "$CK" ]]; then
+            echo "[eval-casia] skip $V (no checkpoint at $CK)"
+            continue
+        fi
+        echo "[eval-casia] ablation variant: $V"
+        export MDIE_CKPT_DIR="$FANOUT/$V"
+        export MDIE_EVAL_VARIANT="$V"
+        export MDIE_RESULTS_DIR="$OUTDIR/$V"
+        export MDIE_FIGURES_DIR="$REPO_ROOT/research_v2/figures/casia_real/$V"
+        mkdir -p "$MDIE_RESULTS_DIR" "$MDIE_FIGURES_DIR"
+        # shellcheck disable=SC2086
+        python -m research_v2.src.eval.run_real_benchmarks \
+            --models mdie \
+            --benchmarks $BENCHMARKS \
+            --out "$OUTDIR/$V/real_benchmarks_$V.csv"
+    done
+fi
+
+echo "[eval-casia] Finished at `date`"
