@@ -116,6 +116,19 @@ def main():
     if args.epochs is None:
         args.epochs = 20
 
+    # Wall-clock fail-safe for time-capped schedulers (e.g. SLURM 8 h walltime).
+    # MDIE_TRAIN_MAX_SECONDS (seconds, measured from now) sets an absolute
+    # deadline after which training stops cleanly at the next epoch boundary so a
+    # resubmitted `--resume` job continues from the last checkpoint.
+    import os as _os
+    import time as _time
+    _budget = _os.environ.get("MDIE_TRAIN_MAX_SECONDS")
+    deadline_ts = (_time.time() + float(_budget)) if _budget else None
+    if deadline_ts is not None:
+        print(f"  [budget] training deadline in {float(_budget)/3600:.2f} h "
+              f"(MDIE_TRAIN_MAX_SECONDS={_budget}); will stop at an epoch "
+              f"boundary and exit 64 if not finished.")
+
     seed_all()
     tune_for_device()
     if args.ddp:
@@ -311,6 +324,7 @@ def main():
                         grad_clip=args.grad_clip,
                         warmup_epochs=args.warmup_epochs,
                         resume=args.resume,
+                        deadline_ts=deadline_ts,
                         channels_last=args.channels_last,
                         compile_model=args.compile_model,
                         backbone_lr_mult=args.backbone_lr_mult,
@@ -327,6 +341,19 @@ def main():
         del model
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+    # Wall-clock fail-safe: if any variant stopped before its last epoch, skip
+    # the (premature) eval/figures and exit 64 so the scheduler resubmits with
+    # --resume instead of treating a partial model as the final result. Every
+    # epoch was already checkpointed to <variant>_last.pt, so no work is lost.
+    incomplete = [v for v, hh in histories.items() if not hh.get("completed", True)]
+    if incomplete:
+        print(f"\n[budget] stopped early before completion: {incomplete}")
+        print("[budget] skipping eval/figures; resubmit with --resume to continue.")
+        if args.ddp:
+            from .train.ddp import cleanup_ddp
+            cleanup_ddp()
+        raise SystemExit(64)
 
     plot_training_curves(histories, FIGURES_DIR / "stage2_training_curves.png")
 

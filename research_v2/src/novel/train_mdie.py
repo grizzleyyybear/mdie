@@ -70,6 +70,7 @@ def train_mdie(
     grad_clip: float = 5.0,
     warmup_epochs: int = 1,
     resume: bool = False,
+    deadline_ts: float | None = None,
     channels_last: bool = False,
     val_auc_fn=None,
     compile_model: bool = False,
@@ -144,6 +145,7 @@ def train_mdie(
                "val_auc": [], "epoch_time": [], "imgs_per_sec": []}
     global_step = (start_epoch - 1) * steps_per_epoch
     skipped_steps = 0
+    stopped_early = False
 
     for epoch in range(start_epoch, epochs + 1):
         t0 = time.time()
@@ -252,7 +254,18 @@ def train_mdie(
                            epoch=epoch, best_metric=best_loss,
                            model_config=model_config)
 
-    if main:
+        # Wall-clock fail-safe: on a time-capped scheduler (e.g. SLURM 8 h
+        # walltime) stop cleanly *after* a completed epoch — `_last.pt` is
+        # already flushed above, so a resubmitted job resumes from here. We
+        # stop ~1 h before the hard kill so the in-flight epoch + checkpoint
+        # always finish, never leaving a half-written state.
+        if deadline_ts is not None and epoch < epochs and time.time() >= deadline_ts:
+            if main:
+                print(f"  [budget] {name}: wall-clock budget reached after "
+                      f"epoch {epoch}/{epochs}; stopping early — resume later "
+                      f"from {last_ckpt.name}.")
+            stopped_early = True
+            break
         with open(RESULTS_DIR / f"history_{name}.csv", "w", newline="") as f:
             w = csv.writer(f)
             w.writerow(["epoch", "total", "loss_id", "loss_iccl", "loss_mod",
@@ -265,4 +278,6 @@ def train_mdie(
 
     history["skipped_steps"] = skipped_steps
     history["best_auc"] = best_auc
+    history["stopped_early"] = stopped_early
+    history["completed"] = not stopped_early
     return history

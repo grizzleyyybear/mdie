@@ -35,8 +35,9 @@ hpc/
 ├── slurm_eval.sh              real-bench eval + bone-IoU + compat proof (<1.5 h)
 ├── slurm_full_pipeline.sh     all of the above end-to-end (~12 h)
 ├── slurm_ddp_full.sh          scale-up: Stage-2 on N A100s via DDP (CASIA/IR-100)
-├── slurm_fanout_train.sh      scale-up: 4 variants in parallel (1 GPU each)
-├── submit_fanout.sh           orchestrate the fan-out + dependency-chained merge
+├── slurm_fanout_train.sh      scale-up: 4 variants in parallel (1 GPU each); 8 h-walltime self-resubmit
+├── submit_fanout.sh           orchestrate the fan-out + polling merge guard
+├── merge_guard.sh             waits for all variant .complete sentinels, then merges
 └── interactive.sh             srun helper for an A100 debug shell
 ```
 
@@ -166,6 +167,18 @@ DATASET=casia bash hpc/submit_fanout.sh
 #   per-variant outputs -> research_v2/results/fanout/<variant>/
 #   merged ablation     -> research_v2/results/fanout/ablation_merged.json
 ```
+
+**8 h walltime fail-safe (automatic).** Each fan-out task trains with `--resume`
+and checkpoints every epoch (`<variant>_last.pt`, atomic write). It caps its
+wall-clock budget at `MDIE_TRAIN_MAX_SECONDS` (default **25200 s = 7 h**, ~1 h
+under the 8 h walltime), stops cleanly at the next epoch boundary if the budget
+is hit, and **resubmits itself** (`--array=<idx>`) to continue from the last
+checkpoint. The chain is capped by `MDIE_MAX_ATTEMPTS` (default 8 → up to ~56 h
+cumulative). `submit_fanout.sh` queues `merge_guard.sh`, which **polls** for each
+variant's `.complete` sentinel (re-queuing every 30 min) and only merges once all
+four variants have finished — so a still-resubmitting variant never triggers a
+premature merge. Tune the budget for a faster/slower partition, e.g.
+`MDIE_TRAIN_MAX_SECONDS=21600 DATASET=casia bash hpc/submit_fanout.sh`.
 
 New entrypoint flags (default to the old behaviour when omitted):
 

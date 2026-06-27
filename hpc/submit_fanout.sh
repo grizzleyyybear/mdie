@@ -18,21 +18,19 @@ echo "[submit] launching 4-way variant fan-out array ..."
 ARRAY_JID="$(sbatch --parsable hpc/slurm_fanout_train.sh)"
 echo "[submit] array job id: $ARRAY_JID"
 
-echo "[submit] queuing merge (runs after the whole array finishes ok) ..."
-MERGE_JID="$(sbatch --parsable \
-    --dependency="afterok:${ARRAY_JID}" \
-    --job-name=mdie-merge \
-    --partition=dgxnp \
-    --time=00:20:00 \
-    --output=job.%J.out --error=job.%J.err \
-    --wrap="cd '$REPO_ROOT' && export PYTHONPATH='$REPO_ROOT' && python -m research_v2.src.merge_fanout")"
-echo "[submit] merge job id: $MERGE_JID  (depends on $ARRAY_JID)"
+# The training tasks may self-resubmit to survive the 8 h walltime, so an
+# `afterok` dependency on the array can fire while a variant is still training.
+# Use the polling merge guard instead: it waits for every variant's .complete
+# sentinel before merging (re-queues itself every 30 min until then).
+echo "[submit] queuing merge guard (waits for all .complete sentinels) ..."
+MERGE_JID="$(sbatch --parsable hpc/merge_guard.sh)"
+echo "[submit] merge guard job id: $MERGE_JID"
 
 cat <<MSG
 
 [ok] Submitted:
-   - fan-out array : $ARRAY_JID   (4 tasks, 1 GPU each)
-   - merge         : $MERGE_JID   (afterok:$ARRAY_JID)
+   - fan-out array : $ARRAY_JID   (4 tasks, 1 GPU each; self-resubmit on 8 h walltime)
+   - merge guard   : $MERGE_JID   (polls for results/fanout/<variant>/.complete)
 Watch with:  squeue --me
 Per-variant outputs: research_v2/results/fanout/<variant>/
 Merged summary:      research_v2/results/fanout/ablation_merged.json

@@ -42,6 +42,10 @@ export MDIE_RESULTS_DIR="$REPO_ROOT/research_v2/results/fanout/$SLUG"
 export MDIE_FIGURES_DIR="$REPO_ROOT/research_v2/figures/fanout/$SLUG"
 export MDIE_CKPT_DIR="$REPO_ROOT/research_v2/checkpoints/fanout/$SLUG"
 mkdir -p "$MDIE_RESULTS_DIR" "$MDIE_FIGURES_DIR" "$MDIE_CKPT_DIR"
+# Completion sentinel: cleared at the start of every attempt, re-created only
+# when this variant finishes ALL epochs + eval. The merge guard waits on it, so
+# a self-resubmitted (still-training) variant never triggers a premature merge.
+rm -f "$MDIE_RESULTS_DIR/.complete"
 
 DATASET="${DATASET:-casia}"
 BACKBONE="${BACKBONE:-ir50}"
@@ -52,6 +56,18 @@ VAL_PAIRS="${VAL_PAIRS:-6000}"
 CPB="${CPB:-32}"
 SPC="${SPC:-8}"
 PRETRAINED="${PRETRAINED:-1}"
+
+# --- 8 h walltime fail-safe ------------------------------------------------
+# Training checkpoints every epoch (<variant>_last.pt, atomic write). We cap the
+# wall-clock budget BELOW the SLURM walltime so a long run stops cleanly at an
+# epoch boundary (never mid-write) and this job resubmits itself with --resume.
+# Default 7 h leaves ~1 h margin under the 8 h walltime for the final epoch +
+# eval. Tune with MDIE_TRAIN_MAX_SECONDS; cap the resubmit chain with
+# MDIE_MAX_ATTEMPTS (default 8 -> up to ~56 h of cumulative training).
+export MDIE_TRAIN_MAX_SECONDS="${MDIE_TRAIN_MAX_SECONDS:-25200}"
+ATTEMPT="${MDIE_ATTEMPT:-1}"
+MAX_ATTEMPTS="${MDIE_MAX_ATTEMPTS:-8}"
+echo "[failsafe] attempt $ATTEMPT/$MAX_ATTEMPTS  budget=${MDIE_TRAIN_MAX_SECONDS}s  walltime=08:00:00"
 
 # Realistic occlusion augmentation (mask/glasses/cap/structured occluder). ON by
 # default for CASIA-scale training; set REALISTIC_AUG=0 to reproduce the flat
@@ -66,6 +82,7 @@ if [[ "$PRETRAINED" == "0" || "$BACKBONE" == "ir100" ]]; then
     PRETRAINED_FLAG="--no-pretrained-backbone"
 fi
 
+set +e
 python -m research_v2.src.run_stage2 \
     --dataset "$DATASET" \
     --backbone "$BACKBONE" \
@@ -80,6 +97,30 @@ python -m research_v2.src.run_stage2 \
     --samples-per-class "$SPC" \
     --val-pairs "$VAL_PAIRS" \
     --ablation \
+    --resume \
     --only-variant "$VARIANT"
+RC=$?
+set -e
+
+# Exit 64 == clean stop on the wall-clock budget (not finished). Resubmit this
+# one array index with --resume to continue from the last checkpoint. Any other
+# non-zero code is a real failure -> do NOT resubmit (avoid an error loop).
+SUBMIT_SCRIPT="${SLURM_SUBMIT_DIR:-$REPO_ROOT}/hpc/slurm_fanout_train.sh"
+if [[ $RC -eq 64 ]]; then
+    if [[ $ATTEMPT -lt $MAX_ATTEMPTS ]]; then
+        echo "[failsafe] budget reached; resubmitting variant $VARIANT (attempt $((ATTEMPT+1))/$MAX_ATTEMPTS)"
+        sbatch --array="$IDX" \
+            --export=ALL,MDIE_ATTEMPT=$((ATTEMPT+1)),MDIE_MAX_ATTEMPTS=$MAX_ATTEMPTS,MDIE_TRAIN_MAX_SECONDS=$MDIE_TRAIN_MAX_SECONDS,DATASET=$DATASET,BACKBONE=$BACKBONE,EPOCHS_S2=$EPOCHS_S2,BATCH=$BATCH,LR=$LR,VAL_PAIRS=$VAL_PAIRS,CPB=$CPB,SPC=$SPC,PRETRAINED=$PRETRAINED,REALISTIC_AUG=$MDIE_REALISTIC_AUG \
+            "$SUBMIT_SCRIPT"
+        echo "[failsafe] resubmitted; this task exits 0 so the chain continues."
+        exit 0
+    fi
+    echo "[failsafe] reached MAX_ATTEMPTS=$MAX_ATTEMPTS without finishing $VARIANT" >&2
+    exit 1
+elif [[ $RC -ne 0 ]]; then
+    echo "[failsafe] run_stage2 failed with code $RC (not a budget stop); not resubmitting" >&2
+    exit $RC
+fi
 
 echo "Finished $VARIANT at `date`"
+touch "$MDIE_RESULTS_DIR/.complete"
