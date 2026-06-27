@@ -113,10 +113,11 @@ class RegionAwareTokenAttention(nn.Module):
 
     def __init__(self, channels: int = 512, dim: int = 192, heads: int = 4,
                  layers: int = 2, grid: int = 14, n_regions: int = 7,
-                 dropout: float = 0.3):
+                 dropout: float = 0.3, use_visibility: bool = False):
         super().__init__()
         self.grid = grid
         self.n_regions = n_regions
+        self.use_visibility = use_visibility
         self.proj_in = nn.Conv2d(channels, dim, 1)
         self.region_emb = nn.Parameter(torch.randn(n_regions, dim) * 0.02)
         self.pos = nn.Parameter(torch.randn(1, grid * grid, dim) * 0.02)
@@ -147,11 +148,28 @@ class RegionAwareTokenAttention(nn.Module):
         self.gate = nn.Parameter(torch.zeros(1))
         # Background suppression strength (learnable, kept positive via softplus).
         self.bg_gamma = nn.Parameter(torch.tensor(2.0))
+        # --- self-supervised visibility gating (opt-in) -----------------------
+        # A per-token head predicts which spatial cells are *visible* (not behind
+        # a worn occluder). Its free supervision is the exact occlusion mask from
+        # the synthetic modification (clean=all-visible, modified=unchanged-cells).
+        # At inference the predicted visibility down-weights occluded cells in the
+        # pooling, so identity is read from the still-visible rigid bone regions —
+        # no occlusion detector or extra forward pass is needed. The final layer
+        # is zero-initialised so visibility starts at 0.5 everywhere and the gated
+        # attention is EXACTLY the ungated attention at init (identity start).
+        if use_visibility:
+            self.vis_head = nn.Sequential(
+                nn.Linear(dim, dim // 2), nn.GELU(), nn.Dropout(dropout),
+                nn.Linear(dim // 2, 1))
+            nn.init.zeros_(self.vis_head[-1].weight)
+            nn.init.zeros_(self.vis_head[-1].bias)
+        self.last_vis_loss = torch.zeros(())
         # Set in forward(): off-face penalty + (training) per-image bone-landmark
         # matching, so attention is supervised onto each face's detected bones.
         self.last_attn_loss = torch.zeros(())
 
-    def forward(self, feat: torch.Tensor, bone_target: torch.Tensor | None = None):
+    def forward(self, feat: torch.Tensor, bone_target: torch.Tensor | None = None,
+                visibility: torch.Tensor | None = None):
         B, C, H, W = feat.shape
         if H != self.grid or W != self.grid:
             feat = F.adaptive_avg_pool2d(feat, (self.grid, self.grid))
@@ -203,7 +221,25 @@ class RegionAwareTokenAttention(nn.Module):
             coverage = ((fwd + rev) * valid).sum() / denom
         self.last_attn_loss = bg_penalty + coverage
 
-        weighted = z * attn.unsqueeze(-1) * (H * W)
+        # --- visibility gating (opt-in) ---------------------------------------
+        # Predict per-token visibility and down-weight occluded cells in the
+        # pooling. The ungated ``attn`` (and the returned map + bone-matching
+        # loss above) are left untouched, so RATA interpretability is unchanged;
+        # visibility only refines what the deployed embedding pools over.
+        pool_attn = attn
+        if self.use_visibility:
+            vis_logit = self.vis_head(z).squeeze(-1)              # (B, HW)
+            vis_pred = torch.sigmoid(vis_logit)                   # (B, HW) in (0,1)
+            gated = attn * vis_pred
+            pool_attn = gated / gated.sum(dim=1, keepdim=True).clamp_min(1e-9)
+            if visibility is not None:
+                vtgt = visibility.reshape(B, -1).to(vis_logit.dtype)  # (B, HW)
+                self.last_vis_loss = F.binary_cross_entropy_with_logits(
+                    vis_logit, vtgt)
+            else:
+                self.last_vis_loss = vis_logit.new_zeros(())
+
+        weighted = z * pool_attn.unsqueeze(-1) * (H * W)
         weighted = weighted.transpose(1, 2).reshape(B, d, H, W)
         delta = self.proj_out(weighted)
         # residual gate: out = feat + tanh(gate) * delta  (starts as identity)

@@ -237,7 +237,7 @@ class PairedModificationDataset(Dataset):
 
     def __init__(self, paths: List[Path], labels: List[int], image_size: int = 112,
                  modifications=None, p_clean: float = 0.15, bone_targets=None,
-                 grid: int = 14):
+                 grid: int = 14, geom_targets=None, return_aux: bool = False):
         if not 0.0 <= p_clean <= 1.0:
             raise ValueError("p_clean must be between 0 and 1")
         self.paths = paths
@@ -254,6 +254,13 @@ class PairedModificationDataset(Dataset):
         # faces get an all-zero target (the attention loss ignores those).
         self.bone_targets = bone_targets
         self.grid = grid
+        # Optional per-image bone-geometry signatures (dict keyed by str(path) ->
+        # (GEOM_DIM,) float array) for the BGI auxiliary head. When ``return_aux``
+        # is on, __getitem__ appends a 6th element carrying the geometry target
+        # and the per-token visibility maps; otherwise the legacy 5-tuple is
+        # returned byte-for-byte unchanged so every existing recipe is untouched.
+        self.geom_targets = geom_targets
+        self.return_aux = return_aux
 
     def __len__(self) -> int:
         return len(self.paths)
@@ -267,6 +274,32 @@ class PairedModificationDataset(Dataset):
                 return torch_mod.from_numpy(np.asarray(t, dtype=np.float32))
         return torch_mod.zeros((g, g), dtype=torch_mod.float32)
 
+    def _geom_target(self, idx: int):
+        torch_mod = _require_torch()
+        if self.geom_targets is not None:
+            v = self.geom_targets.get(str(self.paths[idx]))
+            if v is not None:
+                return torch_mod.from_numpy(np.asarray(v, dtype=np.float32))
+        from .landmarks import GEOM_DIM
+        return torch_mod.zeros((GEOM_DIM,), dtype=torch_mod.float32)
+
+    def _visibility(self, clean: np.ndarray, modded: np.ndarray):
+        """Per-token visibility (grid, grid): 1 where the cell is unoccluded.
+
+        Computed for FREE from the synthetic occlusion: any pixel the modifier
+        changed is treated as occluded. Clean samples (modded == clean) yield an
+        all-ones map. This is the exact, label-free supervision for the
+        visibility head — no occlusion detector or hand annotation needed.
+        """
+        torch_mod = _require_torch()
+        cv2 = _require_cv2()
+        g = self.grid
+        diff = np.abs(modded.astype(np.int16) - clean.astype(np.int16)).sum(axis=2)
+        changed = (diff > 24).astype(np.float32)             # (H, W) in {0,1}
+        frac = cv2.resize(changed, (g, g), interpolation=cv2.INTER_AREA)
+        vis = np.clip(1.0 - frac, 0.0, 1.0).astype(np.float32)
+        return torch_mod.from_numpy(vis)
+
     def __getitem__(self, idx: int):
         img = _load_face(self.paths[idx], self.size)
         if np.random.rand() < self.p_clean:
@@ -275,13 +308,26 @@ class PairedModificationDataset(Dataset):
             mod_kind = self.modifications[np.random.randint(0, len(self.modifications))]
         from .modifications import apply_modification
         modded = apply_modification(img, mod_kind, seed=int(np.random.randint(0, 1 << 30)))
-        return (
+        base = (
             _to_tensor(img),
             _to_tensor(modded),
             int(self.labels[idx]),
             int(self.modifications.index(mod_kind)),
             self._bone_target(idx),
         )
+        if not self.return_aux:
+            return base
+        # 6th element: auxiliary BGI/visibility targets. ``vis_clean`` is all
+        # ones (the clean view is fully visible); ``vis_mod`` marks the cells the
+        # occluder did not touch. ``geom`` is identity anatomy (same for both
+        # views). default_collate batches this dict of tensors transparently.
+        torch_mod = _require_torch()
+        aux = {
+            "geom": self._geom_target(idx),
+            "vis_clean": torch_mod.ones((self.grid, self.grid), dtype=torch_mod.float32),
+            "vis_mod": self._visibility(img, modded),
+        }
+        return (*base, aux)
 
 
 # ---------------------------------------------------------------------------

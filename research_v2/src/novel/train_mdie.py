@@ -76,10 +76,13 @@ def train_mdie(
     compile_model: bool = False,
     backbone_lr_mult: float = 1.0,
     attn_lambda: float = 0.5,
+    bgi_lambda: float = 0.1,
+    vis_lambda: float = 0.1,
     ddp: bool = False,
     local_rank: int = 0,
 ) -> dict:
-    """The PairedModificationDataset must yield (clean, modified, id_label, mod_label, bone_target)."""
+    """The PairedModificationDataset must yield (clean, modified, id_label, mod_label, bone_target)
+    and optionally a 6th ``aux`` dict (geom/visibility) when BGI or visibility gating is enabled."""
     from ..hw import autocast_dtype
     from ..trainer_utils import (
         Throughput, is_finite_loss, load_resumable, save_resumable, set_lr,
@@ -151,21 +154,31 @@ def train_mdie(
         t0 = time.time()
         tput = Throughput()
         model.train()
-        agg = {"train_loss": 0.0, "loss_id": 0.0, "loss_iccl": 0.0, "loss_mod": 0.0, "n": 0}
+        agg = {"train_loss": 0.0, "loss_id": 0.0, "loss_iccl": 0.0, "loss_mod": 0.0,
+               "loss_bgi": 0.0, "loss_vis": 0.0, "n": 0}
         optim.zero_grad(set_to_none=True)
-        for step, (clean, modded, id_lbl, mod_lbl, bone_t) in enumerate(train_loader, start=1):
+        for step, batch in enumerate(train_loader, start=1):
+            clean, modded, id_lbl, mod_lbl, bone_t = batch[:5]
+            aux = batch[5] if len(batch) > 5 else None
             clean = clean.to(device, non_blocking=True)
             modded = modded.to(device, non_blocking=True)
             id_lbl = id_lbl.to(device, non_blocking=True)
             mod_lbl = mod_lbl.to(device, non_blocking=True)
             bone_t = bone_t.to(device, non_blocking=True)
+            geom_t = vis_clean = vis_mod = None
+            if aux is not None:
+                geom_t = aux["geom"].to(device, non_blocking=True)
+                vis_clean = aux["vis_clean"].to(device, non_blocking=True)
+                vis_mod = aux["vis_mod"].to(device, non_blocking=True)
             if channels_last:
                 clean = clean.to(memory_format=torch.channels_last)
                 modded = modded.to(memory_format=torch.channels_last)
 
             with autocast("cuda", dtype=ac_dtype, enabled=USE_AMP):
-                out_clean = fwd_model(clean, id_lbl, mod_lbl, bone_target=bone_t)
-                out_mod   = fwd_model(modded, id_lbl, mod_lbl, bone_target=bone_t)
+                out_clean = fwd_model(clean, id_lbl, mod_lbl, bone_target=bone_t,
+                                      geom_target=geom_t, visibility=vis_clean)
+                out_mod   = fwd_model(modded, id_lbl, mod_lbl, bone_target=bone_t,
+                                      geom_target=geom_t, visibility=vis_mod)
                 loss_id = 0.5 * (out_clean["loss_identity"] + out_mod["loss_identity"])
                 loss_iccl = identity_consistency_contrastive_loss(
                     out_clean["embedding"], out_mod["embedding"],
@@ -178,8 +191,17 @@ def train_mdie(
                     loss_attn = 0.5 * (out_clean["loss_attn"] + out_mod["loss_attn"])
                 else:
                     loss_attn = torch.zeros((), device=device)
+                if "loss_bgi" in out_clean:
+                    loss_bgi = 0.5 * (out_clean["loss_bgi"] + out_mod["loss_bgi"])
+                else:
+                    loss_bgi = torch.zeros((), device=device)
+                if "loss_vis" in out_clean:
+                    loss_vis = 0.5 * (out_clean["loss_vis"] + out_mod["loss_vis"])
+                else:
+                    loss_vis = torch.zeros((), device=device)
                 loss = loss_id + iccl_lambda * loss_iccl + loss_mod \
-                    + attn_lambda * loss_attn
+                    + attn_lambda * loss_attn \
+                    + bgi_lambda * loss_bgi + vis_lambda * loss_vis
                 loss = loss / grad_accum_steps
 
             if not is_finite_loss(loss):
@@ -211,6 +233,8 @@ def train_mdie(
             agg["loss_id"] += loss_id.item() * bs
             agg["loss_iccl"] += loss_iccl.item() * bs
             agg["loss_mod"] += loss_mod.item() * bs
+            agg["loss_bgi"] += loss_bgi.item() * bs
+            agg["loss_vis"] += loss_vis.item() * bs
             agg["n"] += bs
             tput.add(bs * 2)  # clean + modified forward passes
 
@@ -232,7 +256,8 @@ def train_mdie(
         if main:
             print(f"  [{name}] epoch {epoch:3d}/{epochs}  total={agg['train_loss']/n:.4f}  "
                   f"id={agg['loss_id']/n:.4f}  iccl={agg['loss_iccl']/n:.4f}  "
-                  f"mod={agg['loss_mod']/n:.4f}  auc={val_auc:.4f}  "
+                  f"mod={agg['loss_mod']/n:.4f}  bgi={agg['loss_bgi']/n:.4f}  "
+                  f"vis={agg['loss_vis']/n:.4f}  auc={val_auc:.4f}  "
                   f"lr={optim.param_groups[0]['lr']:.2e}  "
                   f"skip={skipped_steps}  {dt:.1f}s  {ips:.0f} img/s")
 

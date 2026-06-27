@@ -26,6 +26,7 @@ import torch.nn.functional as F
 
 from ..models.backbones import build_backbone
 from ..models.heads import ArcFaceHead, GradientReversal
+from ..data.landmarks import GEOM_DIM
 from .region_attention import RegionAwareTokenAttention
 
 
@@ -40,11 +41,25 @@ class MDIE(nn.Module):
                  backbone: str = "ir50",
                  pretrained_backbone: bool = False,
                  freeze_backbone: bool = False,
-                 residual_fusion: bool = False):
+                 residual_fusion: bool = False,
+                 use_bgi: bool = False,
+                 use_visibility: bool = False,
+                 geom_dim: int = GEOM_DIM):
         super().__init__()
         self.use_region_prior = use_region_prior
         self.use_amd = use_amd
         self.amd_lambda = amd_lambda
+        # Bone-Geometry Identity (BGI): an auxiliary head that predicts the rigid
+        # bone-proportion signature (occlusion-invariant anatomy) from the deep
+        # embedding. Training-only — the head is never called at inference, so
+        # deployment stays a single forward pass; the gradient simply forces the
+        # embedding to encode the person's skeletal geometry, which a worn
+        # occluder cannot alter.
+        self.use_bgi = use_bgi
+        self.geom_dim = geom_dim
+        # Self-supervised visibility gating lives inside RATA (per-token); this
+        # flag wires its supervision/gating on.
+        self.use_visibility = use_visibility
         # Residual (identity-initialised) fusion. When enabled together with a
         # frozen pretrained backbone, the deployed embedding at initialisation is
         # EXACTLY the backbone's native (production) embedding -- the attention
@@ -73,7 +88,8 @@ class MDIE(nn.Module):
             self.attn = RegionAwareTokenAttention(channels=self.attn_channels,
                                                    dim=256, heads=4,
                                                    layers=2, grid=self.attn_grid,
-                                                   n_regions=7)
+                                                   n_regions=7,
+                                                   use_visibility=use_visibility)
             self.post_pool = nn.Sequential(
                 nn.AdaptiveAvgPool2d(1), nn.Flatten(),
                 nn.Linear(self.attn_channels, embedding_dim, bias=False),
@@ -109,6 +125,14 @@ class MDIE(nn.Module):
 
         self.identity_head = ArcFaceHead(embedding_dim, n_identity_classes)
 
+        if use_bgi:
+            # Predicts the (geom_dim,) rigid-bone proportion signature from the
+            # 512-d embedding. A plain regressor — small and dropped at inference.
+            self.bgi_head = nn.Sequential(
+                nn.Linear(embedding_dim, embedding_dim // 2), nn.GELU(),
+                nn.Dropout(0.2),
+                nn.Linear(embedding_dim // 2, geom_dim))
+
         if use_amd:
             self.grl = GradientReversal(lambda_=amd_lambda)
             self.mod_head = nn.Sequential(
@@ -132,11 +156,12 @@ class MDIE(nn.Module):
                                  align_corners=False)
         return torch.cat([f7u, f_hi], dim=1)                     # (B, 768, g, g)
 
-    def encode(self, x: torch.Tensor, bone_target: torch.Tensor | None = None):
+    def encode(self, x: torch.Tensor, bone_target: torch.Tensor | None = None,
+               visibility: torch.Tensor | None = None):
         out = self.backbone(x)
         if self.use_region_prior:
             fused = self._fuse_maps(out)
-            attended, attn_map = self.attn(fused, bone_target)
+            attended, attn_map = self.attn(fused, bone_target, visibility)
             attn_emb = self.post_pool(attended)               # (B, 512)
             native = out["embedding"]                         # (B, 512)
             if self.residual_fusion:
@@ -178,8 +203,10 @@ class MDIE(nn.Module):
 
     def forward(self, x: torch.Tensor, identity_labels: torch.Tensor,
                 modification_labels: torch.Tensor | None = None,
-                bone_target: torch.Tensor | None = None):
-        emb, attn_map = self.encode(x, bone_target)
+                bone_target: torch.Tensor | None = None,
+                geom_target: torch.Tensor | None = None,
+                visibility: torch.Tensor | None = None):
+        emb, attn_map = self.encode(x, bone_target, visibility)
         outputs = {"embedding": emb, "attn": attn_map}
         outputs["loss_identity"] = self.identity_head(emb, identity_labels)
         if self.use_region_prior:
@@ -187,6 +214,19 @@ class MDIE(nn.Module):
             # (penalises off-face leakage + per-image landmark coverage); see
             # RegionAwareTokenAttention.
             outputs["loss_attn"] = self.attn.last_attn_loss
+            if self.use_visibility:
+                outputs["loss_vis"] = self.attn.last_vis_loss
+        if self.use_bgi and geom_target is not None:
+            # Predict the rigid-bone proportion signature; supervise only on
+            # samples that actually have a detected signature (non-zero rows),
+            # mirroring how the bone-attention loss ignores undetected faces.
+            pred = self.bgi_head(emb)                          # (B, geom_dim)
+            valid = (geom_target.abs().sum(dim=1) > 1e-6).to(emb.dtype)  # (B,)
+            if valid.sum() > 0:
+                per = F.smooth_l1_loss(pred, geom_target, reduction="none").mean(dim=1)
+                outputs["loss_bgi"] = (per * valid).sum() / valid.sum().clamp_min(1.0)
+            else:
+                outputs["loss_bgi"] = emb.new_zeros(())
         if self.use_amd and modification_labels is not None:
             mod_logits = self.mod_head(self.grl(emb))
             outputs["loss_mod"] = F.cross_entropy(mod_logits, modification_labels)

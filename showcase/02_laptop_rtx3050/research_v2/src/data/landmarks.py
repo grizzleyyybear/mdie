@@ -197,6 +197,68 @@ def target_from_landmarks(lm68: np.ndarray, img_w: int, img_h: int,
     return build_bone_target(arr, grid=grid, weights=w)
 
 
+# --- Bone-Geometry Identity (BGI) signature --------------------------------
+# A fixed-length, scale/translation-normalised descriptor of the RIGID bone
+# scaffold. Every entry is a ratio of inter-bone distances (so the descriptor is
+# invariant to face scale and image size), measured between points that *cannot*
+# move under a worn occluder (mask/glasses/cap) — they are skeletal. This gives
+# an occlusion-invariant, person-specific anatomical fingerprint that the BGI
+# auxiliary head learns to predict from the deep embedding at TRAINING time only
+# (the head is dropped at inference, so deployment stays a single forward pass).
+#
+# Each measurement is ``||a-b|| / ref`` where ``ref`` is the outer-canthi inter-
+# ocular distance (a wide, stable skeletal baseline). Pairs are listed as
+# ((a, b), (ref_a, ref_b)); when ref defaults to the global outer-interocular
+# baseline the second tuple is the canonical reference pair below.
+_GEOM_REF = ("orbital_R_out", "orbital_L_out")          # outer inter-canthal
+_GEOM_PAIRS = [
+    ("orbital_R_in", "orbital_L_in"),    # inner inter-canthal
+    ("brow_R_out", "brow_L_out"),        # brow-ridge span (frontal bone)
+    ("brow_R_in", "brow_L_in"),          # inner brow span
+    ("cheek_R", "cheek_L"),              # zygomatic prominence span
+    ("cheek_R_low", "cheek_L_low"),      # zygomatic arch span
+    ("jaw_R", "jaw_L"),                  # mandible (gonial) width
+    ("jaw_R_low", "jaw_L_low"),          # lower mandible width
+    ("chin_R", "chin_L"),                # chin width
+    ("glabella", "chin"),                # full bony face height
+    ("nasion", "chin"),                  # midface→chin height
+    ("glabella", "nasion"),              # upper-face (frontal) height
+    ("nasion", "nose_bridge"),           # bony nasal-bridge length
+    ("brow_R", "orbital_R_out"),         # brow→orbit vertical R
+    ("brow_L", "orbital_L_out"),         # brow→orbit vertical L
+    ("cheek_R_low", "jaw_R"),            # cheek→jaw R
+    ("cheek_L_low", "jaw_L"),            # cheek→jaw L
+    ("orbital_R_out", "cheek_R"),        # orbit→cheek R
+    ("orbital_L_out", "cheek_L"),        # orbit→cheek L
+    ("nasion", "cheek_R"),               # nasion→cheek R (midface width)
+    ("nasion", "cheek_L"),               # nasion→cheek L
+    ("glabella", "jaw_R"),               # frontal→jaw diagonal R
+    ("glabella", "jaw_L"),               # frontal→jaw diagonal L
+]
+GEOM_DIM = len(_GEOM_PAIRS)              # 22 occlusion-invariant proportions
+
+
+def bone_geometry_signature(lm68: np.ndarray) -> np.ndarray:
+    """Return the (GEOM_DIM,) scale-normalised rigid-bone proportion vector.
+
+    All distances are divided by the outer inter-canthal baseline, so the
+    descriptor is invariant to face scale, image resolution and translation.
+    Returns an all-zero vector when landmarks are missing/degenerate (callers
+    treat an all-zero signature as "no target", exactly like the bone map).
+    """
+    if lm68 is None:
+        return np.zeros((GEOM_DIM,), dtype=np.float32)
+    pts = rigid_bone_points(np.asarray(lm68))
+    ref = float(np.linalg.norm(pts[_GEOM_REF[0]] - pts[_GEOM_REF[1]]))
+    if ref <= 1e-6:
+        return np.zeros((GEOM_DIM,), dtype=np.float32)
+    out = np.empty((GEOM_DIM,), dtype=np.float32)
+    for i, (a, b) in enumerate(_GEOM_PAIRS):
+        out[i] = float(np.linalg.norm(pts[a] - pts[b])) / ref
+    # clip pathological values from bad detections to keep the loss well-behaved
+    return np.clip(out, 0.0, 4.0).astype(np.float32)
+
+
 # --- cache I/O --------------------------------------------------------------
 def load_cache_version(npz_path: str | Path) -> int:
     """Return the TARGET_VERSION stamped into a cache npz (0 if absent/old)."""
@@ -219,6 +281,24 @@ def load_target_cache(npz_path: str | Path) -> dict[str, np.ndarray]:
     keys = [str(k) for k in data["keys"]]
     targets = data["targets"]
     return {k: targets[i] for i, k in enumerate(keys)}
+
+
+def load_geom_cache(npz_path: str | Path) -> dict[str, np.ndarray]:
+    """Load a path→(GEOM_DIM,) bone-geometry signature dict, if present.
+
+    Returns ``{}`` for caches built before BGI existed (the ``geoms`` key is
+    simply absent), so old caches keep working and BGI degrades gracefully to
+    "no target" until the cache is rebuilt.
+    """
+    npz_path = Path(npz_path)
+    if not npz_path.exists():
+        return {}
+    data = np.load(npz_path, allow_pickle=True)
+    if "geoms" not in getattr(data, "files", []):
+        return {}
+    keys = [str(k) for k in data["keys"]]
+    geoms = data["geoms"]
+    return {k: geoms[i] for i, k in enumerate(keys)}
 
 
 def _select_landmark_providers() -> tuple[list[str], int]:
@@ -287,10 +367,12 @@ def build_cache(paths, out_npz: str | Path, grid: int = GRID,
 
     keys, targets = [], []
     n_ok = 0
+    geoms = []
     paths = [str(p) for p in paths]
     for i, p in enumerate(paths):
         img = cv2.imread(p)
         tgt = np.zeros((grid, grid), dtype=np.float32)
+        geom = np.zeros((GEOM_DIM,), dtype=np.float32)
         if img is not None:
             faces = app.get(img)
             if faces:
@@ -300,10 +382,12 @@ def build_cache(paths, out_npz: str | Path, grid: int = GRID,
                 if lm is not None:
                     h, w = img.shape[:2]
                     tgt = target_from_landmarks(lm, w, h, grid=grid)
+                    geom = bone_geometry_signature(lm)
                     if tgt.sum() > 0:
                         n_ok += 1
         keys.append(p)
         targets.append(tgt)
+        geoms.append(geom)
         if verbose and (i + 1) % 200 == 0:
             print(f"    landmarks {i+1}/{len(paths)}  (detected {n_ok})", flush=True)
 
@@ -311,6 +395,7 @@ def build_cache(paths, out_npz: str | Path, grid: int = GRID,
     out_npz.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(out_npz, keys=np.array(keys),
                         targets=np.stack(targets).astype(np.float32),
+                        geoms=np.stack(geoms).astype(np.float32),
                         version=np.int64(TARGET_VERSION))
     if verbose:
         print(f"    cached {len(keys)} targets ({n_ok} with a detected face) "

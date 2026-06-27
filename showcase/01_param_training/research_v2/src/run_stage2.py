@@ -113,6 +113,21 @@ def main():
                           "the specialist recipe).")
     ap.add_argument("--attn-lambda", type=float, default=0.5,
                      help="weight for the RATA face-attention (anti-background) loss")
+    ap.add_argument("--bgi", dest="bgi", action="store_true", default=False,
+                     help="enable the Bone-Geometry Identity (BGI) auxiliary head: "
+                          "the embedding is trained to predict the rigid bone-"
+                          "proportion signature (occlusion-invariant anatomy). "
+                          "Training-only; inference stays a single forward pass.")
+    ap.add_argument("--bgi-lambda", type=float, default=0.1,
+                     help="weight for the BGI bone-geometry regression loss")
+    ap.add_argument("--visibility", dest="visibility", action="store_true",
+                     default=False,
+                     help="enable self-supervised visibility gating in RATA: a "
+                          "per-token head learns (from the free synthetic-occlusion "
+                          "mask) which cells are visible and down-weights occluded "
+                          "ones in the pooled embedding.")
+    ap.add_argument("--vis-lambda", type=float, default=0.1,
+                     help="weight for the visibility BCE loss")
     ap.add_argument("--build-cache-only", dest="build_cache_only",
                      action="store_true",
                      help="build (or verify) the bone-landmark cache for the "
@@ -199,7 +214,7 @@ def main():
     # real bone geometry (data-driven, varies per face) instead of a fixed
     # template. The detector is a *training-time teacher* only — inference needs
     # no landmarks. Cache is built once and reused.
-    from .data.landmarks import (build_cache, load_target_cache,
+    from .data.landmarks import (build_cache, load_target_cache, load_geom_cache,
                                  load_cache_version, GRID as BONE_GRID,
                                  TARGET_VERSION as BONE_VERSION)
     bone_cache_path = Path(DATA_DIR) / "bone_targets.npz"
@@ -216,7 +231,14 @@ def main():
         return False
     missing = [p for p in train_paths if str(p) not in bone_targets]
     stale_version = bool(bone_targets) and cache_version != BONE_VERSION
-    need_build = bool(missing) or (bone_targets and _stale_grid(bone_targets)) or stale_version
+    # When BGI is requested the cache must also carry geometry signatures. Older
+    # caches (built before BGI) lack the ``geoms`` key, so force a one-off rebuild
+    # to add them; without --bgi this is skipped and nothing changes.
+    geom_targets = load_geom_cache(bone_cache_path)
+    geom_missing = bool(args.bgi) and (not geom_targets or
+                   any(str(p) not in geom_targets for p in train_paths))
+    need_build = bool(missing) or (bone_targets and _stale_grid(bone_targets)) \
+        or stale_version or geom_missing
     # Under DDP only rank 0 builds the shared cache; the others wait on a
     # barrier and then load the finished .npz from disk (avoids a write race).
     if need_build and (not args.ddp or rank == 0):
@@ -224,6 +246,8 @@ def main():
             why = "missing entries"
         elif stale_version:
             why = f"stale target version (need v{BONE_VERSION}, got v{cache_version})"
+        elif geom_missing:
+            why = "missing BGI geometry signatures (--bgi)"
         else:
             why = f"stale grid (need {BONE_GRID})"
         print(f"  [landmarks] building bone-target cache ({why}) for "
@@ -238,6 +262,7 @@ def main():
         barrier()
     if need_build:
         bone_targets = load_target_cache(bone_cache_path) or None
+        geom_targets = load_geom_cache(bone_cache_path)
     else:
         n_face = sum(1 for p in train_paths if bone_targets[str(p)].sum() > 0)
         print(f"  [landmarks] loaded bone targets for {len(train_paths)} images "
@@ -260,7 +285,9 @@ def main():
                                            image_size=SETTINGS.train.image_size,
                                            modifications=MODIFICATION_TYPES,
                                            bone_targets=bone_targets,
-                                           grid=BONE_GRID)
+                                           grid=BONE_GRID,
+                                           geom_targets=(geom_targets or None),
+                                           return_aux=bool(args.bgi or args.visibility))
     if args.balanced_sampler:
         from torch.utils.data import DataLoader
         cpb = min(args.classes_per_batch,
@@ -317,7 +344,9 @@ def main():
     backbone_kwargs = dict(backbone=args.backbone,
                            pretrained_backbone=args.pretrained_backbone,
                            freeze_backbone=args.freeze_backbone,
-                           residual_fusion=args.residual_fusion)
+                           residual_fusion=args.residual_fusion,
+                           use_bgi=args.bgi,
+                           use_visibility=args.visibility)
     print(f"  Backbone: {'pretrained w600k IResNet50' if args.pretrained_backbone else 'from-scratch ' + args.backbone.upper()}"
           f"{'' if not args.pretrained_backbone else (' (frozen)' if args.freeze_backbone else f' (fine-tune x{args.backbone_lr_mult})')}")
 
@@ -356,6 +385,8 @@ def main():
                         compile_model=args.compile_model,
                         backbone_lr_mult=args.backbone_lr_mult,
                         attn_lambda=args.attn_lambda,
+                        bgi_lambda=args.bgi_lambda,
+                        vis_lambda=args.vis_lambda,
                         ddp=args.ddp,
                         local_rank=local_rank,
                         val_auc_fn=(

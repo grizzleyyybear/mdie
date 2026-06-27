@@ -93,6 +93,26 @@ else
 fi
 echo "[specialist] outputs -> $MDIE_RESULTS_DIR"
 
+# --- New occlusion-invariant novelties (opt-in, default OFF) ----------------
+#   BGI=1 : Bone-Geometry Identity auxiliary head. Anchors the embedding in the
+#           rigid skeletal proportion signature (interocular/orbital/cheekbone/
+#           jaw/chin distances) that a worn occluder CANNOT change. Training-only
+#           -- the head is dropped at inference, so deployment stays one forward
+#           pass. NOTE: BGI needs geometry signatures in the landmark cache; the
+#           first BGI run on an already-cached dataset triggers a one-off cache
+#           rebuild to add them (free on a fresh dataset).
+#   VIS=1 : self-supervised visibility gating in RATA. A per-token head learns
+#           (from the FREE exact synthetic-occlusion mask) which cells are
+#           visible and down-weights occluded ones in the pooled embedding -- so
+#           identity is read from the still-visible bone regions. Zero-init =>
+#           starts as an exact identity (no change at init), no inference cost.
+# Recommended occlusion-specialist run:
+#   BGI=1 VIS=1 DATASET=glint360k UNFREEZE=1 sbatch hpc/slurm_train_specialist.sh
+NOVELTY_FLAGS=""
+if [[ "${BGI:-0}" == "1" ]]; then NOVELTY_FLAGS="$NOVELTY_FLAGS --bgi"; fi
+if [[ "${VIS:-0}" == "1" ]]; then NOVELTY_FLAGS="$NOVELTY_FLAGS --visibility"; fi
+echo "[specialist] novelties: BGI=${BGI:-0} VIS=${VIS:-0} ->${NOVELTY_FLAGS:- (none)}"
+
 set +e
 python -m research_v2.src.run_stage2 \
     --dataset "$DATASET" \
@@ -100,6 +120,7 @@ python -m research_v2.src.run_stage2 \
     --pretrained-backbone \
     $BACKBONE_FLAGS \
     --residual-fusion \
+    $NOVELTY_FLAGS \
     --epochs "$EPOCHS_S2" \
     --batch "$BATCH" \
     --lr "$LR" \
@@ -120,7 +141,7 @@ if [[ "$RC" == "64" ]]; then
     if [[ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]]; then
         SUBMIT_SCRIPT="${SLURM_SUBMIT_DIR:-$REPO_ROOT}/hpc/slurm_train_specialist.sh"
         echo "[failsafe] budget reached; resubmitting (attempt $((ATTEMPT+1))/$MAX_ATTEMPTS)"
-        sbatch --export=ALL,MDIE_ATTEMPT=$((ATTEMPT+1)),MDIE_MAX_ATTEMPTS=$MAX_ATTEMPTS,MDIE_TRAIN_MAX_SECONDS=$MDIE_TRAIN_MAX_SECONDS,DATASET=$DATASET,BACKBONE=$BACKBONE,EPOCHS_S2=$EPOCHS_S2,BATCH=$BATCH,LR=$LR,VAL_PAIRS=$VAL_PAIRS,CPB=$CPB,SPC=$SPC,REALISTIC_AUG=$MDIE_REALISTIC_AUG,UNFREEZE=${UNFREEZE:-0},BB_LR_MULT=$BB_LR_MULT \
+        sbatch --export=ALL,MDIE_ATTEMPT=$((ATTEMPT+1)),MDIE_MAX_ATTEMPTS=$MAX_ATTEMPTS,MDIE_TRAIN_MAX_SECONDS=$MDIE_TRAIN_MAX_SECONDS,DATASET=$DATASET,BACKBONE=$BACKBONE,EPOCHS_S2=$EPOCHS_S2,BATCH=$BATCH,LR=$LR,VAL_PAIRS=$VAL_PAIRS,CPB=$CPB,SPC=$SPC,REALISTIC_AUG=$MDIE_REALISTIC_AUG,UNFREEZE=${UNFREEZE:-0},BB_LR_MULT=$BB_LR_MULT,BGI=${BGI:-0},VIS=${VIS:-0} \
             "$SUBMIT_SCRIPT"
     else
         echo "[failsafe] max attempts reached; stopping."

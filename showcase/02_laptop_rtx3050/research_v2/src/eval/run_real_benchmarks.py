@@ -107,6 +107,12 @@ def _mdie_loader(device: torch.device):
     if residual_fusion is None:
         residual_fusion = any(k.startswith("fuse_residual.") or k == "res_gate"
                               for k in sd.keys())
+    use_bgi = cfg.get("use_bgi")
+    if use_bgi is None:
+        use_bgi = any(k.startswith("bgi_head.") for k in sd.keys())
+    use_visibility = cfg.get("use_visibility")
+    if use_visibility is None:
+        use_visibility = any(k.startswith("attn.vis_head.") for k in sd.keys())
     model = MDIE(
         n_identity_classes=n_id,
         n_modification_classes=n_mod,
@@ -116,6 +122,8 @@ def _mdie_loader(device: torch.device):
         amd_lambda=cfg.get("amd_lambda", 0.10),
         pretrained_backbone=pretrained_bb,
         residual_fusion=residual_fusion,
+        use_bgi=use_bgi,
+        use_visibility=use_visibility,
     ).to(device).eval()
     missing, unexpected = model.load_state_dict(sd, strict=False)
     # Guard: if the backbone weights didn't actually load, the eval is invalid.
