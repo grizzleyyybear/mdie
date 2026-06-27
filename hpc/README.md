@@ -36,6 +36,7 @@ hpc/
 ├── slurm_full_pipeline.sh     all of the above end-to-end (~12 h)
 ├── slurm_ddp_full.sh          scale-up: Stage-2 on N A100s via DDP (CASIA/IR-100)
 ├── slurm_fanout_train.sh      scale-up: 4 variants in parallel (1 GPU each); 8 h-walltime self-resubmit
+├── slurm_build_cache.sh       one-off batch job: build the shared bone-landmark cache, then exit
 ├── submit_fanout.sh           orchestrate the fan-out + polling merge guard
 ├── merge_guard.sh             waits for all variant .complete sentinels, then merges
 └── interactive.sh             srun helper for an A100 debug shell
@@ -159,6 +160,12 @@ cd research_v2/datasets_cache && tar -xf casia.tar
 **b. Train.** Two multi-GPU options:
 
 ```bash
+# (0) ONE-OFF: build the shared bone-landmark cache first (batch job, GPU).
+#     This is the dominant one-off cost; building it once means the fan-out
+#     variants skip the build and never race on the same .npz.
+DATASET=casia sbatch hpc/slurm_build_cache.sh
+#   wait until it appears:  ls -l research_v2/datasets_cache/bone_targets.npz
+
 # (i) one big DDP job across N GPUs on a node (IR-100 from scratch on CASIA):
 GPUS=4 DATASET=casia BACKBONE=ir100 sbatch hpc/slurm_ddp_full.sh
 
@@ -167,6 +174,12 @@ DATASET=casia bash hpc/submit_fanout.sh
 #   per-variant outputs -> research_v2/results/fanout/<variant>/
 #   merged ablation     -> research_v2/results/fanout/ablation_merged.json
 ```
+
+> **Batch-only (no interactive login required).** Every step above is a plain
+> `sbatch` submission — you never need an `srun`/interactive shell. If you skip
+> step (0), the fan-out still works (each variant builds its own cache), but the
+> four jobs would redundantly build it in parallel; the dedicated cache job
+> avoids that.
 
 **8 h walltime fail-safe (automatic).** Each fan-out task trains with `--resume`
 and checkpoints every epoch (`<variant>_last.pt`, atomic write). It caps its

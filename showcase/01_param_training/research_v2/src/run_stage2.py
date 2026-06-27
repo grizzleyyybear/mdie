@@ -106,6 +106,12 @@ def main():
                      help="LR multiplier for the pretrained backbone (light fine-tune)")
     ap.add_argument("--attn-lambda", type=float, default=0.5,
                      help="weight for the RATA face-attention (anti-background) loss")
+    ap.add_argument("--build-cache-only", dest="build_cache_only",
+                     action="store_true",
+                     help="build (or verify) the bone-landmark cache for the "
+                          "selected dataset, then exit before training. Use as a "
+                          "one-off prep job so the fan-out variants skip the "
+                          "build and never race on the shared .npz.")
     args = ap.parse_args()
 
     if args.quick:
@@ -229,6 +235,19 @@ def main():
         n_face = sum(1 for p in train_paths if bone_targets[str(p)].sum() > 0)
         print(f"  [landmarks] loaded bone targets for {len(train_paths)} images "
               f"({n_face} with a detected face)")
+
+    # One-off cache-prep mode: stop here so a single batch job can build the
+    # shared bone_targets.npz (the dominant one-off cost) before the fan-out is
+    # launched. The 4 variant jobs then see missing=[] and skip straight to
+    # training instead of racing to build the same cache four times.
+    if args.build_cache_only:
+        n_cached = len(load_target_cache(bone_cache_path) or {})
+        print(f"  [landmarks] cache ready at {bone_cache_path} "
+              f"({n_cached} entries). --build-cache-only: exiting before training.")
+        if args.ddp:
+            from .train.ddp import cleanup_ddp
+            cleanup_ddp()
+        raise SystemExit(0)
 
     paired_ds = PairedModificationDataset(train_paths, train_lbls,
                                            image_size=SETTINGS.train.image_size,
