@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 from pathlib import Path
 from typing import Callable, Dict, List
 
@@ -68,9 +69,17 @@ def _baseline_loader(name: str, device: torch.device):
 
 def _mdie_loader(device: torch.device):
     from ..novel import MDIE
-    # Resolve checkpoint with backward-compat for legacy hyphen names.
-    candidates = [CKPT_DIR / "mdie_full.pt", CKPT_DIR / "mdie-full.pt",
-                  CKPT_DIR / "mdie.pt"]
+    # Resolve checkpoint. An optional MDIE_EVAL_VARIANT env var (e.g.
+    # "mdie_norata") lets the harness target a specific ablation checkpoint by
+    # stem under CKPT_DIR — used by the CASIA fan-out eval to score each variant
+    # without renaming files. When unset, the legacy mdie_full/mdie names are
+    # used and the column is reported as plain "mdie" (nothing changes).
+    variant = os.environ.get("MDIE_EVAL_VARIANT", "").strip()
+    candidates = []
+    if variant:
+        candidates.append(CKPT_DIR / f"{variant}.pt")
+    candidates += [CKPT_DIR / "mdie_full.pt", CKPT_DIR / "mdie-full.pt",
+                   CKPT_DIR / "mdie.pt"]
     ck = next((c for c in candidates if c.exists()), None)
     if ck is None:
         return None
@@ -115,7 +124,7 @@ def _mdie_loader(device: torch.device):
         # fused embedding (bone-anchored attention + native identity merged in a
         # learned fusion head) -- an ArcFace drop-in. See MDIE.encode_verify.
         return model.encode_verify(x.to(device))
-    return enc, "mdie"
+    return enc, (variant or "mdie")
 
 
 def _pretrained_ir50_loader(device: torch.device):
