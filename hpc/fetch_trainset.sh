@@ -41,6 +41,21 @@ DATASET="${DATASET:-glint360k}"
 DST="$CACHE_ROOT/$DATASET"
 mkdir -p "$CACHE_ROOT"
 
+# --- Validated public presets ----------------------------------------------
+# If no explicit SRC/KAGGLE_SLUG/HF_REPO is given, map the well-known DATASET
+# names to verified, non-gated HuggingFace mirrors (InsightFace data, aligned
+# 112x112). Override any of these by exporting HF_REPO/KAGGLE_SLUG/SRC yourself.
+#   glint360k : gaunernst/glint360k-wds-gz  17.09M imgs / 360k IDs  (WebDataset)
+#   ms1mv3    : gaunernst/ms1mv3-recordio    5.18M imgs /  93k IDs  (RecordIO)
+#   ms1mv3wds : gaunernst/ms1mv3-wds         5.18M imgs /  93k IDs  (WebDataset)
+if [[ -z "${SRC:-}" && -z "${KAGGLE_SLUG:-}" && -z "${HF_REPO:-}" ]]; then
+    case "$DATASET" in
+        glint360k) HF_REPO="gaunernst/glint360k-wds-gz" ;;
+        ms1mv3)    HF_REPO="gaunernst/ms1mv3-recordio" ;;
+        ms1mv3wds) HF_REPO="gaunernst/ms1mv3-wds" ;;
+    esac
+fi
+
 # Keep download caches on the big project filesystem (not quota'd ~/.cache).
 export KAGGLEHUB_CACHE="${KAGGLEHUB_CACHE:-$CACHE_ROOT/_kaggle}"
 export HF_HOME="${HF_HOME:-$CACHE_ROOT/_hf}"
@@ -139,6 +154,27 @@ rec = find_recordio(root)
 if rec:
     print("REC\t" + os.path.realpath(rec)); sys.exit(0)
 
+def find_webdataset(r):
+    """Return the dir holding *.tar / *.tar.gz shards, if any (BFS, depth<=5)."""
+    frontier, depth = [r], 0
+    while frontier and depth <= 5:
+        nxt = []
+        for d in frontier:
+            try:
+                entries = list(os.scandir(d))
+            except OSError:
+                continue
+            if any(e.is_file() and (e.name.endswith(".tar") or e.name.endswith(".tar.gz"))
+                   for e in entries):
+                return d
+            nxt += [e.path for e in entries if e.is_dir()]
+        frontier, depth = nxt, depth + 1
+    return None
+
+wds = find_webdataset(root)
+if wds:
+    print("WDS\t" + os.path.realpath(wds)); sys.exit(0)
+
 best_dir, best_score = root, identity_score(root)
 frontier, depth = [root], 0
 while frontier and depth < 4:
@@ -174,6 +210,15 @@ if [[ "$KIND" == "REC" ]]; then
     TMP_OUT="$DST.partial"
     rm -rf "$TMP_OUT"
     PYTHONPATH="$REPO_ROOT" python "$REPO_ROOT/hpc/recordio_to_imagefolder.py" "$PAYLOAD" "$TMP_OUT"
+    rm -rf "$DST" 2>/dev/null || true
+    mv "$TMP_OUT" "$DST"
+elif [[ "$KIND" == "WDS" ]]; then
+    echo "[fetch] WebDataset shards at $PAYLOAD"
+    echo "[fetch] extracting to ImageFolder at $DST (pure-python tar/gzip; slow on millions of images) ..."
+    [[ -L "$DST" ]] && rm -f "$DST"
+    TMP_OUT="$DST.partial"
+    rm -rf "$TMP_OUT"
+    PYTHONPATH="$REPO_ROOT" python "$REPO_ROOT/hpc/webdataset_to_imagefolder.py" "$PAYLOAD" "$TMP_OUT"
     rm -rf "$DST" 2>/dev/null || true
     mv "$TMP_OUT" "$DST"
 else
