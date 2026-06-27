@@ -72,7 +72,23 @@ def build_train_dataset(
     elif source == "casia":
         root = prepare_casia(cache_dir)
     else:
-        raise ValueError(
-            f"unknown training source {source!r}; valid sources are: 'lfw', 'casia'"
-        )
+        # Generic large-scale source: any ImageFolder staged at
+        # ``<cache_dir>/<source>`` (per-identity subdirs), optionally nested one
+        # level (``<cache_dir>/<source>/<source>/<identity>`` from a tarball).
+        # This lets the specialist recipe train on bigger/better public sets
+        # (e.g. ``ms1mv3``, ``webface4m``, ``glint360k``) staged exactly like
+        # CASIA, with no code change beyond ``--dataset <source>``.
+        root = cache_dir / source
+        nested = root / source
+        if root.is_dir() and any(p.is_dir() and p.name != source
+                                 for p in root.iterdir()):
+            pass
+        elif nested.is_dir():
+            root = nested
+        else:
+            raise ValueError(
+                f"unknown training source {source!r}: no staged ImageFolder at "
+                f"{root} (expected per-identity subdirs). Valid built-ins: 'lfw', "
+                f"'casia'; or stage any ImageFolder at <cache_dir>/{source}/."
+            )
     return build_face_dataset(root, min_imgs=min_imgs, max_per_id=max_per_id)

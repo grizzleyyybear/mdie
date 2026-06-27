@@ -39,11 +39,20 @@ class MDIE(nn.Module):
                  amd_lambda: float = 0.10,
                  backbone: str = "ir50",
                  pretrained_backbone: bool = False,
-                 freeze_backbone: bool = False):
+                 freeze_backbone: bool = False,
+                 residual_fusion: bool = False):
         super().__init__()
         self.use_region_prior = use_region_prior
         self.use_amd = use_amd
         self.amd_lambda = amd_lambda
+        # Residual (identity-initialised) fusion. When enabled together with a
+        # frozen pretrained backbone, the deployed embedding at initialisation is
+        # EXACTLY the backbone's native (production) embedding -- the attention
+        # pathway contributes a zero-initialised, gated residual that training
+        # grows only where it helps (worn occlusion). This makes the specialist
+        # start at production parity and improve on its niche, instead of the
+        # random-init concat fusion that overwrites the native embedding.
+        self.residual_fusion = residual_fusion
 
         if pretrained_backbone:
             self.backbone = build_backbone(
@@ -78,9 +87,22 @@ class MDIE(nn.Module):
             # while inheriting the attention pathway's occlusion robustness. The
             # spatial attention map is still produced and supervised (RATA loss),
             # so interpretability is unaffected.
-            self.fuse = nn.Sequential(
-                nn.Linear(2 * embedding_dim, embedding_dim, bias=False),
-                nn.BatchNorm1d(embedding_dim))
+            if self.residual_fusion:
+                # Identity-initialised residual: emb = norm(native + gate * delta),
+                # with delta = W[attn_emb; native] and W zero-initialised and the
+                # gate a learnable scalar starting at 0. At init delta*gate == 0,
+                # so the deployed embedding is exactly the native (production)
+                # embedding; training grows the gated residual only where the
+                # attention pathway helps. Preserves production accuracy by
+                # construction and adds occlusion robustness on top.
+                self.fuse_residual = nn.Linear(2 * embedding_dim, embedding_dim,
+                                               bias=False)
+                nn.init.zeros_(self.fuse_residual.weight)
+                self.res_gate = nn.Parameter(torch.zeros(1))
+            else:
+                self.fuse = nn.Sequential(
+                    nn.Linear(2 * embedding_dim, embedding_dim, bias=False),
+                    nn.BatchNorm1d(embedding_dim))
 
         self.identity_head = ArcFaceHead(embedding_dim, n_identity_classes)
 
@@ -114,8 +136,12 @@ class MDIE(nn.Module):
             attended, attn_map = self.attn(fused, bone_target)
             attn_emb = self.post_pool(attended)               # (B, 512)
             native = out["embedding"]                         # (B, 512)
-            emb = self.fuse(torch.cat([attn_emb, native], dim=1))
-            emb = F.normalize(emb, dim=1)
+            if self.residual_fusion:
+                delta = self.fuse_residual(torch.cat([attn_emb, native], dim=1))
+                emb = F.normalize(native + self.res_gate * delta, dim=1)
+            else:
+                emb = self.fuse(torch.cat([attn_emb, native], dim=1))
+                emb = F.normalize(emb, dim=1)
             return emb, attn_map
         return F.normalize(out["embedding"], dim=1), None
 

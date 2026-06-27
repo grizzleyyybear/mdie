@@ -104,6 +104,13 @@ def main():
                      help="freeze the pretrained backbone (default: light fine-tune)")
     ap.add_argument("--backbone-lr-mult", type=float, default=0.1,
                      help="LR multiplier for the pretrained backbone (light fine-tune)")
+    ap.add_argument("--residual-fusion", dest="residual_fusion",
+                     action="store_true", default=False,
+                     help="use the identity-initialised gated residual fusion head "
+                          "instead of the concat fusion. With --freeze-backbone this "
+                          "makes the deployed embedding start at production parity "
+                          "and only add occlusion-robust corrections (recommended for "
+                          "the specialist recipe).")
     ap.add_argument("--attn-lambda", type=float, default=0.5,
                      help="weight for the RATA face-attention (anti-background) loss")
     ap.add_argument("--build-cache-only", dest="build_cache_only",
@@ -309,7 +316,8 @@ def main():
     # Backbone configuration shared by every variant (train + eval rebuild).
     backbone_kwargs = dict(backbone=args.backbone,
                            pretrained_backbone=args.pretrained_backbone,
-                           freeze_backbone=args.freeze_backbone)
+                           freeze_backbone=args.freeze_backbone,
+                           residual_fusion=args.residual_fusion)
     print(f"  Backbone: {'pretrained w600k IResNet50' if args.pretrained_backbone else 'from-scratch ' + args.backbone.upper()}"
           f"{'' if not args.pretrained_backbone else (' (frozen)' if args.freeze_backbone else f' (fine-tune x{args.backbone_lr_mult})')}")
 

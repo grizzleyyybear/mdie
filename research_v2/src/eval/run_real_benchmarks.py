@@ -103,6 +103,10 @@ def _mdie_loader(device: torch.device):
     pretrained_bb = cfg.get("pretrained_backbone")
     if pretrained_bb is None:
         pretrained_bb = any(k.startswith("backbone.net.") for k in sd.keys())
+    residual_fusion = cfg.get("residual_fusion")
+    if residual_fusion is None:
+        residual_fusion = any(k.startswith("fuse_residual.") or k == "res_gate"
+                              for k in sd.keys())
     model = MDIE(
         n_identity_classes=n_id,
         n_modification_classes=n_mod,
@@ -111,6 +115,7 @@ def _mdie_loader(device: torch.device):
         use_amd=cfg.get("use_amd", has_amd),
         amd_lambda=cfg.get("amd_lambda", 0.10),
         pretrained_backbone=pretrained_bb,
+        residual_fusion=residual_fusion,
     ).to(device).eval()
     missing, unexpected = model.load_state_dict(sd, strict=False)
     # Guard: if the backbone weights didn't actually load, the eval is invalid.
