@@ -53,3 +53,7 @@ core.*
 .env
 *.key
 *.pem
+
+# Large result/checkpoint tarballs (scp'd off PARAM) - never commit
+*.tgz
+*.tar.gz

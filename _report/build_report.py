@@ -64,7 +64,7 @@ def header_footer(canvas, doc):
     canvas.line(1.6*cm, 1.05*cm, w-1.6*cm, 1.05*cm)
     canvas.setFillColor(GREY)
     canvas.setFont("Helvetica", 8)
-    canvas.drawString(1.6*cm, 0.7*cm, "Generated 2026-06-25  -  git HEAD 6c4a453  -  PARAM Siddhi-AI (A100)")
+    canvas.drawString(1.6*cm, 0.7*cm, "Generated 2026-06-27  -  git HEAD 46936b4  -  PARAM Siddhi-AI (A100)")
     canvas.drawRightString(w-1.6*cm, 0.7*cm, f"Page {doc.page}")
     canvas.restoreState()
 
@@ -126,19 +126,20 @@ para("<b>MDIE</b> is a face-recognition encoder designed for <b>security / acces
      "is a <b>single 512-d L2-normalised vector from one forward pass</b> &mdash; a literal drop-in for an "
      "ArcFace encoder in any existing cosine / FAISS pipeline.")
 para("This report documents (a) the validated method and its <b>reproducible results</b>, (b) a complete guide to "
-     "every code file, and (c) the current status of the <b>large-scale scale-up</b> on the PARAM Siddhi-AI A100 "
-     "supercomputer. The method is fully validated; the large-scale CASIA-WebFace training pipeline has been "
-     "<b>engineered and de-risked</b>, with the final scale-up run as the remaining step.")
+     "every code file, and (c) the <b>completed large-scale scale-up</b> on the PARAM Siddhi-AI A100 "
+     "supercomputer. The method is fully validated and the CASIA-WebFace (0.49M-image) fan-out training run has "
+     "<b>completed</b>; the CASIA model was then evaluated on real worn-occlusion benchmarks against a production "
+     "InsightFace model (Section 3.5).")
 
 cards = Table([[
     Paragraph("<b>VALIDATED</b><br/><font size=8>Method, ablation &amp; interpretability proven on LFW; results reproducible on A100 (byte-identical re-run).</font>", white),
     Paragraph("<b>ENGINEERED</b><br/><font size=8>CASIA-WebFace (490k imgs) data pipeline + GPU landmark cache solved &amp; committed on PARAM.</font>", white),
-    Paragraph("<b>PENDING</b><br/><font size=8>Final large-scale fan-out training run (IR-50/100, 4 ablation variants) on the A100 queue.</font>", white),
+    Paragraph("<b>COMPLETED</b><br/><font size=8>CASIA fan-out training (IR-50, 4 ablation variants, 40 epochs) done + real-benchmark eval vs production InsightFace.</font>", white),
 ]], colWidths=[5.2*cm, 5.2*cm, 5.2*cm])
 cards.setStyle(TableStyle([
     ("BACKGROUND", (0,0), (0,0), GREEN),
     ("BACKGROUND", (1,0), (1,0), NAVY),
-    ("BACKGROUND", (2,0), (2,0), ACCENT),
+    ("BACKGROUND", (2,0), (2,0), GREEN),
     ("VALIGN", (0,0), (-1,-1), "TOP"),
     ("LEFTPADDING", (0,0), (-1,-1), 8), ("RIGHTPADDING", (0,0), (-1,-1), 8),
     ("TOPPADDING", (0,0), (-1,-1), 8), ("BOTTOMPADDING", (0,0), (-1,-1), 8),
@@ -277,7 +278,46 @@ para("A model trained on 13k LFW images with <b>synthetic</b> masks generalizes 
      "better than the other from-scratch recognizers &mdash; evidence the learned invariance is <b>anatomical</b>, not "
      "dataset-specific. Even off-niche (cross-age) MDIE beats baselines that sit near chance.", body)
 
-para("3.5 Deployment compatibility proof", h2)
+story.append(PageBreak())
+para("3.5 CASIA scale-up (0.49M) &mdash; real benchmarks vs a production model", h2)
+para("We retrained MDIE on <b>CASIA-WebFace (0.49M images)</b> on PARAM A100s and re-ran the same real-benchmark "
+     "verification protocols, this time alongside <b>InsightFace-w600k_r50</b> &mdash; a production IR-50 trained on "
+     "WebFace12M (~24&times; more data). The scale-up lifts MDIE on <b>every</b> real benchmark; on its design target "
+     "(worn occlusion) it now approaches the production model. Source: results/casia_real/real_benchmarks_casia.csv.", body)
+data_casia = [
+    [Paragraph("Benchmark (real)", white), Paragraph("Pairs", white), Paragraph("MDIE&nbsp;(LFW&nbsp;13k)", white),
+     Paragraph("MDIE&nbsp;(CASIA&nbsp;0.49M)", white), Paragraph("InsightFace&nbsp;(WebFace12M)", white)],
+    ["MFR2 (real masks)", "848", "0.734", "0.886", "0.965"],
+    ["MeGlass (real glasses)", "3000", "0.824", "0.991", "0.998"],
+    ["CALFW (cross-age)", "6000", "0.557", "0.641", "0.800"],
+    ["AgeDB-30 (30-yr gap)", "6000", "0.594", "0.734", "0.944"],
+]
+tc = Table(data_casia, colWidths=[4.6*cm, 1.5*cm, 3.0*cm, 3.2*cm, 3.2*cm])
+tc.setStyle(TableStyle([
+    ("BACKGROUND", (0,0), (-1,0), NAVY),
+    ("ALIGN", (1,0), (-1,-1), "CENTER"),
+    ("FONT", (0,1), (-1,-1), "Helvetica", 8.5),
+    ("FONT", (3,1), (3,-1), "Helvetica-Bold", 8.5),
+    ("TEXTCOLOR", (3,1), (3,-1), ACCENT),
+    ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, LIGHT]),
+    ("GRID", (0,0), (-1,-1), 0.4, colors.HexColor("#cfd6df")),
+    ("TOPPADDING", (0,0), (-1,-1), 4), ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+    ("LEFTPADDING", (0,0), (-1,-1), 6),
+]))
+gap(2); story.append(tc)
+story.append(Paragraph("AUC on held-out pairs. CASIA-MDIE is the single deployed 512-d encoder; no test-time tricks.", caption))
+para("Reading this honestly: on <b>worn occlusion</b> &mdash; the niche MDIE is built for &mdash; the CASIA model is "
+     "competitive with a far larger production system (<b>glasses within 0.007 AUC</b>; masks 0.886). On <b>aging</b> "
+     "(CALFW/AgeDB-30), which MDIE was never designed for, it trails the 24&times;-larger general model, as expected for "
+     "a domain-specialised encoder. The headline is <b>occlusion-robustness-per-image-of-training-data</b>, not beating "
+     "production everywhere.", body)
+para("Across the four CASIA ablation variants the real-benchmark AUCs are non-monotone and tightly clustered "
+     "(within ~0.02), with <b>no single variant dominating</b> &mdash; consistent with the synthetic CASIA eval. At this "
+     "scale the pretrained backbone carries most of the pooled accuracy, so RATA's contribution is the <b>interpretability"
+     "</b> of Section 3.3 (bone-anchored attention), not a raw-AUC gain. We report this directly rather than cherry-picking "
+     "a winning column.", body)
+
+para("3.6 Deployment compatibility proof", h2)
 proof = Table([
     [Paragraph("Check", white), Paragraph("Result", white)],
     ["Embedding shape", "[B, 512]  -  is_512d = true"],
@@ -401,7 +441,7 @@ para("To move from the 13k-image LFW prototype to a publication-scale result, th
      "<b>CASIA-WebFace</b> (~490k images, 10,575 identities) on the CDAC PARAM Siddhi-AI A100 supercomputer. This "
      "section reports exactly what is done and what remains.", body)
 
-para("5.1 Solved &amp; committed (4 commits this phase)", h2)
+para("5.1 Solved, committed &amp; run", h2)
 bullets([
     "<b>Genuine CASIA-WebFace acquired</b> on PARAM (verified source: Institute of Automation, CAS). The Kaggle mirror ships InsightFace <b>RecordIO</b> (pre-aligned 112x112) &mdash; the ideal format for an ArcFace-aligned backbone.",
     "<b>Pure-Python RecordIO extractor</b> written (no mxnet dependency); selects image records by JPEG/PNG magic bytes and writes original encoded bytes verbatim (validated byte-exact).",
@@ -414,6 +454,8 @@ commits = Table([
     ["15b00ec", "Handle InsightFace RecordIO in Kaggle CASIA fetch"],
     ["3d5a169", "Fix RecordIO extraction: select image records by magic bytes"],
     ["6c4a453", "Load torch's bundled cuDNN/cuBLAS so onnxruntime-gpu uses the A100"],
+    ["a081dcf", "8h-walltime fail-safe: per-epoch checkpoint + auto-resume + self-resubmit"],
+    ["46936b4", "Real-benchmark eval of the CASIA fan-out checkpoints vs production InsightFace"],
 ], colWidths=[3.0*cm, 12.5*cm])
 commits.setStyle(TableStyle([
     ("BACKGROUND", (0,0), (-1,0), NAVY),
@@ -426,18 +468,19 @@ commits.setStyle(TableStyle([
 ]))
 gap(2); story.append(commits); gap(6)
 
-para("5.2 Remaining steps", h2)
+para("5.2 Completed run", h2)
 bullets([
-    "<b>Build the bone-landmark cache</b> (bone_targets.npz) once on a GPU node &mdash; recommended via an interactive srun session (instant node) rather than the batch queue (currently ~6h wait due to a fully-booked partition).",
-    "<b>Launch the 4-variant fan-out training</b>, which then reuses the cached targets and skips straight to training.",
-    "<b>Pull results down</b> and refresh the figures/tables for the large-scale numbers.",
+    "<b>Bone-landmark cache built on a GPU node</b> (bone_targets.npz, 391,335 images, 391,220 faces detected &mdash; 99.97%) via a one-off batch job; GPU landmarking confirmed (CUDAExecutionProvider).",
+    "<b>4-variant fan-out training completed</b> (MDIE-full / noRATA / noAMD / noICCL), 40 epochs each on one A100, ~4h45m wall-clock total &mdash; inside the 8h walltime, so the checkpoint/auto-resume fail-safe never had to fire.",
+    "<b>Real-benchmark eval completed</b> on the CASIA checkpoints vs production InsightFace-w600k (Section 3.5).",
+    "Per-variant metrics, the merged ablation table, and the real-benchmark CSVs are archived under <font face='Courier'>research_v2/results/fanout/</font> and <font face='Courier'>results/casia_real/</font>.",
 ])
-note = Table([[Paragraph("<b>Note on current queue state:</b> the last batch submission was waiting in the PARAM queue "
-    "(reason: Priority &mdash; partition fully booked, nothing of ours blocking). The interactive-srun route avoids the "
-    "wait. The exact live state (cache built? run finished?) should be confirmed with <font face='Courier'>squeue --me</font> "
-    "before the next step.", small)]], colWidths=[15.5*cm])
-note.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,-1),colors.HexColor("#fff6e6")),
-    ("BOX",(0,0),(-1,-1),0.6,colors.HexColor("#e0a800")),
+note = Table([[Paragraph("<b>Honest scale finding:</b> at CASIA scale the four ablation variants are statistically tied "
+    "(pooled AUC within ~0.003) and the ablation is <b>non-monotone</b> &mdash; unlike the LFW run, no single variant "
+    "wins every column. The pretrained backbone carries most of the pooled invariance; RATA/AMD/ICCL add "
+    "interpretability and a per-modification profile rather than a pooled-AUC gain. We present this as-is.", small)]], colWidths=[15.5*cm])
+note.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,-1),colors.HexColor("#eaf2fb")),
+    ("BOX",(0,0),(-1,-1),0.6,NAVY),
     ("LEFTPADDING",(0,0),(-1,-1),8),("RIGHTPADDING",(0,0),(-1,-1),8),
     ("TOPPADDING",(0,0),(-1,-1),6),("BOTTOMPADDING",(0,0),(-1,-1),6)]))
 story.append(note)
@@ -445,16 +488,19 @@ story.append(note)
 para("5.3 What is presentable now", h2)
 bullets([
     "The <b>validated method</b> + the fully reproducible LFW results (Section 3) &mdash; a complete, honest research story.",
-    "The <b>robustness narrative</b>: synthetic-occlusion training transferring to real masked/glasses faces.",
-    "The <b>engineering rigor</b>: a multi-GPU scale-up engine and the data-pipeline hardening (RecordIO, GPU cache) detailed above.",
+    "The <b>completed CASIA-WebFace (0.49M) scale-up</b>: real-benchmark transfer where the niche model approaches a production system on worn occlusion (glasses within 0.007 AUC) at ~24&times; less training data (Section 3.5).",
+    "The <b>robustness narrative</b>: occlusion-aware training transferring to real masked/glasses faces, now at scale.",
+    "The <b>engineering rigor</b>: a multi-GPU fan-out engine, an 8h-walltime checkpoint/auto-resume fail-safe, and data-pipeline hardening (RecordIO, GPU cache).",
 ])
 
 para("Honest positioning", h3)
-para("<i>MDIE is the most robust recognizer in the comparably-trained regime on its occlusion+lighting niche. We do "
-     "not claim to beat production InsightFace (trained on 17M images) on raw clean accuracy; our contribution is "
-     "architectural (RATA + AMD + fusion head), a reproducible occlusion/lighting failure-mode benchmark, a "
-     "bone-anchored interpretability proof, and an ArcFace-compatible deployment &mdash; now ready to re-train at "
-     "scale on PARAM A100s.</i>", body)
+para("<i>MDIE is the most robust recognizer in the comparably-trained regime on its occlusion+lighting niche, and at "
+     "CASIA scale it approaches a production InsightFace model (WebFace12M) on real worn-occlusion benchmarks despite "
+     "~24&times; less training data. We do <b>not</b> claim to beat production InsightFace on raw accuracy &mdash; it "
+     "leads on every benchmark, widening on aging, which MDIE was never designed for. Our contribution is architectural "
+     "(RATA + AMD + fusion head), a reproducible occlusion/lighting failure-mode benchmark, a bone-anchored "
+     "interpretability proof, and an ArcFace-compatible deployment &mdash; now trained and evaluated at scale on PARAM "
+     "A100s.</i>", body)
 
 # build
 doc = BaseDocTemplate(OUT, pagesize=A4,
