@@ -14,6 +14,7 @@
 # ============================================================================
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
+#SBATCH --gres=gpu:A100-SXM4:1
 #SBATCH --time=00:15:00
 #SBATCH --job-name=mdie-merge
 #SBATCH --error=job.%J.err
