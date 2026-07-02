@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import struct
 import sys
+import os
 from pathlib import Path
 
 MAGIC = 0xCED7230A
@@ -103,6 +104,7 @@ def extract(rec_dir: Path, out_dir: Path) -> int:
     # iterate every record and keep only those whose body is a real image.
     # Annotation/header records have non-image bodies and are skipped.
     n = 0
+    reused = 0
     skipped = 0
     with open(rec_dir / "train.rec", "rb") as rec:
         for i in sorted(idx.keys()):
@@ -119,19 +121,35 @@ def extract(rec_dir: Path, out_dir: Path) -> int:
             d.mkdir(exist_ok=True)
             # Write the original encoded bytes verbatim (lossless + fast — no
             # decode/re-encode round-trip on ~490k images).
-            with open(d / f"{i:08d}{_img_ext(body)}", "wb") as out:
-                out.write(body)
+            out_path = d / f"{i:08d}{_img_ext(body)}"
+            if out_path.exists() and out_path.stat().st_size == len(body):
+                reused += 1
+            else:
+                with open(out_path, "wb") as out:
+                    out.write(body)
             n += 1
             if n % 50000 == 0:
-                print(f"  [recordio] wrote {n} images ...", flush=True)
+                msg = f"  [recordio] processed {n} images"
+                if reused:
+                    msg += f" ({reused} already present/resumed)"
+                print(msg + " ...", flush=True)
     if skipped:
         print(f"  [recordio] skipped {skipped} non-image records (headers/annotations)")
+    if reused:
+        print(f"  [recordio] reused {reused} existing complete images")
     return n
 
 
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit("usage: recordio_to_imagefolder.py <rec_dir> <out_dir>")
+    if not os.environ.get("SLURM_JOB_ID") and os.environ.get("MDIE_ALLOW_LOGIN_EXTRACT") != "1":
+        raise SystemExit(
+            "Refusing to run heavy RecordIO extraction outside SLURM. "
+            "Use: sbatch hpc/slurm_stage_trainset.sh (or run "
+            "bash hpc/fetch_trainset.sh <dataset>, which submits it). "
+            "For a small local developer test only, set MDIE_ALLOW_LOGIN_EXTRACT=1."
+        )
     rec_dir, out_dir = Path(sys.argv[1]), Path(sys.argv[2])
     if not (rec_dir / "train.rec").is_file() or not (rec_dir / "train.idx").is_file():
         raise SystemExit(f"{rec_dir} must contain train.rec and train.idx")

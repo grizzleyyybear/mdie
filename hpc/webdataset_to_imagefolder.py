@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import gzip
 import io
+import os
 import sys
 import tarfile
 from pathlib import Path
@@ -88,6 +89,7 @@ def extract(shard_dir: Path, out_dir: Path) -> int:
     print(f"  [wds] {len(shards)} shards -> {out_dir}", flush=True)
 
     n = 0
+    reused = 0
     skipped = 0
     for si, shard in enumerate(shards):
         # Buffer one shard's samples keyed by sample key: {key: {"jpg":..,"cls":..}}.
@@ -125,22 +127,38 @@ def extract(shard_dir: Path, out_dir: Path) -> int:
                     d = out_dir / f"{cls:07d}"
                     d.mkdir(exist_ok=True)
                     safe_key = key.replace("/", "_")
-                    with open(d / f"{safe_key}{_img_ext(body)}", "wb") as out:
-                        out.write(body)
+                    out_path = d / f"{safe_key}{_img_ext(body)}"
+                    if out_path.exists() and out_path.stat().st_size == len(body):
+                        reused += 1
+                    else:
+                        with open(out_path, "wb") as out:
+                            out.write(body)
                     n += 1
                     if n % 100000 == 0:
-                        print(f"  [wds] wrote {n} images "
-                              f"(shard {si + 1}/{len(shards)}) ...", flush=True)
+                        msg = f"  [wds] processed {n} images "
+                        msg += f"(shard {si + 1}/{len(shards)})"
+                        if reused:
+                            msg += f" ({reused} already present/resumed)"
+                        print(msg + " ...", flush=True)
         # Any unmatched leftovers in this shard are incomplete samples.
         skipped += len(pending)
     if skipped:
         print(f"  [wds] skipped {skipped} incomplete/non-image samples", flush=True)
+    if reused:
+        print(f"  [wds] reused {reused} existing complete images", flush=True)
     return n
 
 
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit("usage: webdataset_to_imagefolder.py <shard_dir> <out_dir>")
+    if not os.environ.get("SLURM_JOB_ID") and os.environ.get("MDIE_ALLOW_LOGIN_EXTRACT") != "1":
+        raise SystemExit(
+            "Refusing to run heavy WebDataset extraction outside SLURM. "
+            "Use: sbatch hpc/slurm_stage_trainset.sh (or run "
+            "bash hpc/fetch_trainset.sh <dataset>, which submits it). "
+            "For a small local developer test only, set MDIE_ALLOW_LOGIN_EXTRACT=1."
+        )
     shard_dir, out_dir = Path(sys.argv[1]), Path(sys.argv[2])
     n = extract(shard_dir, out_dir)
     n_ids = sum(1 for p in out_dir.iterdir() if p.is_dir())

@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
-#  Fetch a LARGE face-recognition training set on the PARAM LOGIN NODE and
-#  stage it as the ImageFolder the trainer reads:
+#  Fetch a LARGE face-recognition training set on the PARAM LOGIN NODE, then
+#  submit a SLURM staging job to extract it into the ImageFolder the trainer reads:
 #       research_v2/datasets_cache/<DATASET>/<identity>/<img>.jpg
 #
 #  PARAM *compute* nodes have no internet; the *login* node does. Run this on
@@ -32,8 +32,9 @@
 #  big enough that you may even unfreeze the backbone (UNFREEZE=1 in
 #  hpc/slurm_train_specialist.sh) at a small LR without catastrophic forgetting.
 #
-#  Nothing else in the pipeline changes: this only populates
-#  datasets_cache/<DATASET>, which `--dataset <DATASET>` already resolves.
+#  IMPORTANT: this script NEVER runs heavy RecordIO/WebDataset extraction on the
+#  login node. If extraction is needed, it submits hpc/slurm_stage_trainset.sh via
+#  sbatch and exits. This keeps us compliant with PARAM login-node policy.
 # ============================================================================
 set -eo pipefail
 
@@ -258,22 +259,40 @@ PAYLOAD="${RESOLVED#*$'\t'}"
 
 if [[ "$KIND" == "REC" ]]; then
     echo "[fetch] InsightFace RecordIO at $PAYLOAD"
-    echo "[fetch] extracting to ImageFolder at $DST (pure-python, no mxnet; this is the slow step) ..."
-    [[ -L "$DST" ]] && rm -f "$DST"
-    TMP_OUT="$DST.partial"
-    rm -rf "$TMP_OUT"
-    PYTHONPATH="$REPO_ROOT" python "$REPO_ROOT/hpc/recordio_to_imagefolder.py" "$PAYLOAD" "$TMP_OUT"
-    rm -rf "$DST" 2>/dev/null || true
-    mv "$TMP_OUT" "$DST"
+    echo "[fetch] extraction is heavy, so it MUST run as a SLURM job (not login)."
+    SUBMIT_SCRIPT="$REPO_ROOT/hpc/slurm_stage_trainset.sh"
+    sbatch --export=ALL,DATASET="$DATASET",STAGE_KIND="$KIND",STAGE_PAYLOAD="$PAYLOAD",STAGE_DST="$DST" \
+        "$SUBMIT_SCRIPT"
+    cat <<MSG
+
+[fetch] Submitted staging job for $DATASET.
+[fetch] Monitor:
+   squeue --me
+   tail -f job.<JOBID>.out
+
+[fetch] Your previous killed login-node extraction left useful work in:
+   $DST.partial
+The SLURM staging job will RESUME from that directory and reuse already-written
+images instead of deleting/restarting them.
+MSG
+    exit 0
 elif [[ "$KIND" == "WDS" ]]; then
     echo "[fetch] WebDataset shards at $PAYLOAD"
-    echo "[fetch] extracting to ImageFolder at $DST (pure-python tar/gzip; slow on millions of images) ..."
-    [[ -L "$DST" ]] && rm -f "$DST"
-    TMP_OUT="$DST.partial"
-    rm -rf "$TMP_OUT"
-    PYTHONPATH="$REPO_ROOT" python "$REPO_ROOT/hpc/webdataset_to_imagefolder.py" "$PAYLOAD" "$TMP_OUT"
-    rm -rf "$DST" 2>/dev/null || true
-    mv "$TMP_OUT" "$DST"
+    echo "[fetch] extraction is heavy, so it MUST run as a SLURM job (not login)."
+    SUBMIT_SCRIPT="$REPO_ROOT/hpc/slurm_stage_trainset.sh"
+    sbatch --export=ALL,DATASET="$DATASET",STAGE_KIND="$KIND",STAGE_PAYLOAD="$PAYLOAD",STAGE_DST="$DST" \
+        "$SUBMIT_SCRIPT"
+    cat <<MSG
+
+[fetch] Submitted staging job for $DATASET.
+[fetch] Monitor:
+   squeue --me
+   tail -f job.<JOBID>.out
+
+[fetch] If $DST.partial already exists, the SLURM staging job will RESUME from it
+and reuse already-written images instead of deleting/restarting them.
+MSG
+    exit 0
 else
     echo "[fetch] ImageFolder root: $PAYLOAD"
     [[ -L "$DST" ]] && rm -f "$DST"
