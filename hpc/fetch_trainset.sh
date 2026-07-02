@@ -5,10 +5,12 @@
 #       research_v2/datasets_cache/<DATASET>/<identity>/<img>.jpg
 #
 #  PARAM *compute* nodes have no internet; the *login* node does. Run this on
-#  the LOGIN NODE (not in an sbatch job):
+#  the LOGIN NODE (not in an sbatch job). It auto-activates the mdie conda env,
+#  so you can just:
 #       cd ~/mrinal/projects/mdie
-#       source ~/Conda/bin/activate mdie
-#       DATASET=glint360k KAGGLE_SLUG=<owner>/<dataset> bash hpc/fetch_trainset.sh
+#       bash hpc/fetch_trainset.sh ms1mv3          # dataset name is positional
+#  or the env-var form:
+#       DATASET=glint360k bash hpc/fetch_trainset.sh
 #
 #  Pick ONE source (checked in this order):
 #    1. SRC=/abs/path        an already-downloaded RecordIO dir (train.rec +
@@ -37,9 +39,60 @@ set -eo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
 CACHE_ROOT="$REPO_ROOT/research_v2/datasets_cache"
-DATASET="${DATASET:-glint360k}"
+# Dataset name may be given positionally ($1) or via the DATASET env var.
+DATASET="${1:-${DATASET:-glint360k}}"
 DST="$CACHE_ROOT/$DATASET"
 mkdir -p "$CACHE_ROOT"
+
+# ---- Ensure the mdie conda env is active -----------------------------------
+# This script needs the PROJECT's Python (huggingface_hub / kagglehub / the
+# loader). The PARAM login node's default `python` is Python 2, so if we're not
+# already inside the mdie env, activate it the same workspace-aware way the
+# SLURM prelude does. Idempotent: a no-op when the env is already active.
+ENV_NAME="${ENV_NAME:-mdie}"
+if [[ "${CONDA_DEFAULT_ENV:-}" != "$ENV_NAME" ]]; then
+    _grand="$(cd "$REPO_ROOT/../.." 2>/dev/null && pwd || echo "")"
+    _parent="$(cd "$REPO_ROOT/.." 2>/dev/null && pwd || echo "")"
+    if [[ -n "$_grand" && "$_grand" == "$HOME"/* \
+          && "$(basename "$_parent")" == "projects" ]]; then
+        _PREFIX_DEFAULT="$_grand"
+    else
+        _PREFIX_DEFAULT="$HOME"
+    fi
+    CONDA_PREFIX_DIR="${CONDA_PREFIX_DIR:-$_PREFIX_DEFAULT/Conda}"
+    if [[ -f "$CONDA_PREFIX_DIR/bin/activate" ]]; then
+        echo "[fetch] activating conda env '$ENV_NAME' from $CONDA_PREFIX_DIR"
+        # shellcheck disable=SC1091
+        source "$CONDA_PREFIX_DIR/bin/activate" "$ENV_NAME"
+    else
+        echo "[fetch] WARNING: conda not found at $CONDA_PREFIX_DIR/bin/activate"
+        echo "        Falling back to PATH python: $(command -v python) ($(python --version 2>&1))"
+        echo "        If import errors follow, activate the env first:"
+        echo "            source <your-Conda>/bin/activate mdie"
+    fi
+fi
+echo "[fetch] python: $(command -v python)  ($(python --version 2>&1))"
+if ! python -c 'import sys; raise SystemExit(0 if sys.version_info[0] >= 3 else 1)' 2>/dev/null; then
+    echo "[fetch] ERROR: 'python' is Python 2 and no mdie conda env was found." >&2
+    echo "        Activate your env, then re-run, e.g.:" >&2
+    echo "            source ~/mrinal/Conda/bin/activate mdie" >&2
+    echo "            bash hpc/fetch_trainset.sh $DATASET" >&2
+    exit 1
+fi
+
+# ---- CDAC proxy for outbound HTTP (login node reaches internet via proxy) ---
+# Auto mode only sets the proxy if a probe through it actually works, so this is
+# harmless if the node has direct internet. Disable with PARAM_USE_PROXY=0.
+PARAM_PROXY="${PARAM_PROXY:-http://proxy-10g.10g.siddhi.param:9090}"
+_use_proxy="${PARAM_USE_PROXY:-auto}"
+if [[ "$_use_proxy" != "0" ]]; then
+    if [[ "$_use_proxy" == "1" ]] || \
+       curl -fsS --max-time 5 --proxy "$PARAM_PROXY" -o /dev/null https://huggingface.co 2>/dev/null; then
+        export http_proxy="$PARAM_PROXY" https_proxy="$PARAM_PROXY"
+        export HTTP_PROXY="$PARAM_PROXY" HTTPS_PROXY="$PARAM_PROXY"
+        echo "[fetch] using CDAC proxy $PARAM_PROXY"
+    fi
+fi
 
 # --- Validated public presets ----------------------------------------------
 # If no explicit SRC/KAGGLE_SLUG/HF_REPO is given, map the well-known DATASET
